@@ -134,6 +134,14 @@ Regras:
     da autocaravana com cartão PT em roaming na UE (home routing) → IP PT em qualquer país → listas [PT]
     sem VPN; listas [ES] ligam es.conf mesmo em Espanha. Wi-Fi local / cartão local → IP do país.
   - Mostrar no topo: "IP: PT · VPN desligada" / "IP: PT · VPN ES ligada".
+- **Modo manual da VPN** (botão "VPN" no topo e no menu do OK do leitor):
+  - Automática (segue lista + país do IP) · Desligada (nunca liga) · fixar um país (ES, UK, PT… — os
+    `.conf` existentes).
+  - A escolha manual mantém-se (mesmo depois de fechar a app) até voltar a "Automática".
+  - Uma VPN de cada vez: a escolha manual ganha à da lista; lista de outro país mostra
+    "esta lista pede UK".
+  - Depois de ligar, confirmar pelo `loc=` e mostrar "IP: ES ✓" (a VPN está mesmo a funcionar).
+  - Topo: "VPN: ES (manual)" / "VPN: UK (auto)" / "VPN: desligada".
 - Lista escolhida sem país → VPN desligada.
 
 ### 3. VPN por região — decisão: **WireGuard embutido** (favorito)
