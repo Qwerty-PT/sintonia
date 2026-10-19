@@ -93,7 +93,7 @@ O **APK é a versão principal**; o desktop (Mac/Windows/Linux, Electron) segue 
 
 ```
 app/          APK (principal)
-desktop/      Electron — Mac/Windows/Linux (a criar na 1.ª porta)
+desktop/      Electron — Mac/Windows/Linux (porta 1.8 feita)
 spec/         formatos (FORMATOS.md) + exemplos com resultado esperado, partilhados pelos testes
 ferramentas/  configurador de listas, etc.
 ```
@@ -107,7 +107,43 @@ Regras:
 - Âmbito do desktop: leitor, lista com janela do vídeo, guia, favoritos, grupos visíveis; teclado
   (setas, Enter, Esc) e rato. Fica de fora o que é só de TV/telemóvel.
 
+## Desktop (Mac / Windows / Linux) — pasta `desktop/`
+
+Electron, mesmo comportamento que o APK 1.8 (versão `1.8.0`). O processo principal põe nos pedidos de vídeo
+os cabeçalhos de cada canal (User-Agent, Referer, Origin) e desliga o CORS só para esses pedidos;
+HLS com hls.js, DASH + ClearKey com Shaka Player; guia .gz/.xz lido em streaming fora do ecrã.
+
+| Tecla / rato | Ação |
+|---|---|
+| ↑ / PgUp / + · ↓ / PgDn / − | Canal seguinte · anterior |
+| Enter / Espaço · mexer o rato | Controlos + guia do canal |
+| ← (ou Esc / Backspace em ecrã inteiro) | Lista de canais com o vídeo em janela |
+| Na lista: Enter | Pré-visualizar; 2.º Enter = ecrã inteiro (→ + Enter na janela, ou Esc, também) |
+| Esc nos grupos da lista | Volta ao ecrã principal |
+| → / I | Nome do canal (3 s) |
+| F / F11 / duplo clique | Ecrã inteiro da janela |
+| M · roda do rato | Som ligado/desligado · volume |
+| Botão direito / F num canal | Favorito · botão direito / H num grupo: esconder |
+| R (ecrã principal) | Atualizar lista |
+
+Desenvolver: `cd desktop && npm install && npm start` · testes: `npm test` (os mesmos exemplos de `spec/`).
+Diagnóstico: `SINTONIA_DEBUG=1 npm start` mostra a consola do ecrã.
+
+Instaladores:
+- Linux: `npm run dist:linux` (AppImage + .deb) — compila em qualquer Linux.
+- Mac: `npm run dist:mac` num Mac (o `.zip` também compila em Linux, sem assinatura).
+- Windows: `npm run dist:win` em Windows (ou Linux com Wine).
+- GitHub Actions (`.github/workflows/desktop.yml`): testes a cada alteração; os três instaladores com uma
+  tag `desktop-v1.8.0` ou "Run workflow".
+
+Sem certificados de programador (Apple/Microsoft):
+- **Mac**: depois de copiar para Aplicações, se disser "danificada" ou "programador não identificado":
+  `xattr -cr /Applications/Sintonia.app` (e, em Apple Silicon, se ainda não abrir:
+  `codesign --force --deep --sign - /Applications/Sintonia.app`). Depois abre normalmente.
+- **Windows**: o SmartScreen avisa na primeira vez → "Mais informações" → "Executar mesmo assim".
+
 ## Backlog
+
 
 
 ### 1. "Receber do telemóvel" (base para o resto) — 📺 APK (desktop: não precisa, tem ficheiros)

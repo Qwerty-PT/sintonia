@@ -1,0 +1,135 @@
+/* Sintonia desktop — mesmo aspeto da app de TV (tema escuro único, como numa TV) */
+:root {
+  --bg: #0e1116;
+  --surface: #171b22;
+  --panel: #1d2330;
+  --logo-bg: #222834;
+  --accent: #3d8bff;
+  --accent-press: #2f6bc7;
+  --selected: #263247;
+  --text: #f2f4f8;
+  --dim: #9aa4b2;
+  --star: #ffc940;
+  --overlay: rgba(0, 0, 0, 0.8);
+  --warn: #ffb35c;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; overflow: hidden; user-select: none; }
+button { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+
+/* ---------- Ecrã principal ---------- */
+#home { height: 100%; display: flex; flex-direction: column; padding: 18px 28px 10px; gap: 12px; }
+.topbar { display: flex; align-items: center; gap: 12px; }
+.topbar h1 { font-size: 24px; margin: 0; font-weight: 700; letter-spacing: -0.01em; }
+.status { flex: 1; color: var(--dim); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.icon-btn { width: 44px; height: 44px; border-radius: 10px; border: 0; background: transparent; display: grid; place-items: center; cursor: pointer; }
+.icon-btn svg { width: 24px; height: 24px; fill: var(--text); }
+.icon-btn:hover { background: var(--selected); }
+.icon-btn:focus-visible { background: var(--accent); outline: none; }
+
+.cols { flex: 1; min-height: 0; display: grid; grid-template-columns: 240px minmax(0, 1fr) 360px; gap: 14px; }
+@media (max-width: 1150px) { .cols { grid-template-columns: 200px minmax(0, 1fr) 300px; } }
+.channels-col { position: relative; min-height: 0; display: flex; }
+.hint { margin: 0; color: var(--dim); font-size: 12.5px; }
+
+.list { overflow-y: auto; overflow-x: hidden; min-height: 0; padding: 2px 6px 24px 2px; display: flex; flex-direction: column; gap: 4px; scrollbar-width: thin; scrollbar-color: #2a3242 transparent; }
+.list.channels { flex: 1; }
+.item { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; border: 0; border-radius: 10px; background: transparent; padding: 8px; cursor: pointer; transition: transform .12s, background-color .12s; }
+.item:hover { background: var(--selected); }
+.item.selected { background: var(--selected); }
+.item:focus-visible, .item:focus { background: var(--accent); outline: none; transform: scale(1.02); }
+.groups .item { padding: 10px 14px; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.channels .item { min-height: 64px; }
+.logo { width: 76px; height: 46px; flex: none; border-radius: 6px; background: var(--logo-bg); object-fit: contain; padding: 3px; }
+.logo.ph { display: grid; place-items: center; color: #5a6577; font-size: 20px; }
+.ch-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ch-name { font-size: 17px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.ch-sub { font-size: 13px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item:focus .ch-sub { color: #e8eefc; }
+.star { color: var(--star); font-size: 19px; padding: 0 6px; }
+
+.center-msg { position: absolute; inset: 0; margin: auto; display: grid; place-items: center; }
+.empty { width: fit-content; height: fit-content; max-width: 80%; padding: 20px; border: 0; border-radius: 10px; background: var(--surface); white-space: pre-line; text-align: center; cursor: pointer; }
+.empty:focus-visible { background: var(--accent); outline: none; }
+.spinner { width: 46px; height: 46px; border-radius: 50%; border: 4px solid #2a3242; border-top-color: var(--accent); animation: spin 0.9s linear infinite; }
+.spinner.big { position: absolute; inset: 0; margin: auto; width: 60px; height: 60px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } .item { transition: none; } }
+
+/* ---------- Painel do guia ---------- */
+.guide { background: var(--panel); border-radius: 12px; padding: 16px; overflow: hidden; display: flex; flex-direction: column; gap: 6px; min-height: 0; margin-bottom: 16px; }
+.g-head { display: flex; align-items: center; gap: 12px; }
+.g-logo { width: 64px; height: 40px; border-radius: 6px; background: var(--logo-bg); object-fit: contain; padding: 3px; flex: none; }
+.g-name { font-size: 19px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.g-now { margin-top: 10px; font-size: 17px; font-weight: 700; }
+.g-range, .epg-range { display: flex; align-items: center; gap: 10px; color: var(--dim); font-size: 13px; font-variant-numeric: tabular-nums; }
+.bar { flex: 1; height: 5px; border-radius: 3px; background: #2a3242; overflow: hidden; }
+.bar > div { height: 100%; background: var(--accent); width: 0; }
+.g-desc { color: var(--dim); font-size: 14px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.g-next-title { margin-top: 12px; color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.g-next { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.g-next div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-next b { font-weight: 600; display: inline-block; width: 3.4em; font-variant-numeric: tabular-nums; }
+.g-empty { color: var(--dim); font-size: 14px; margin-top: 12px; }
+
+/* ---------- Leitor ---------- */
+#player { position: fixed; inset: 0; background: #000; }
+#player.list-open { background: var(--bg); }
+#player.hide-cursor { cursor: none; }
+#stage { position: absolute; inset: 0; background: #000; }
+#stage video { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
+#radioLogo { position: absolute; inset: 0; margin: auto; width: 260px; height: 180px; object-fit: contain; pointer-events: none; }
+
+.overlay-box { position: absolute; background: var(--overlay); border-radius: 12px; }
+.info { top: 24px; left: 24px; padding: 12px 18px; max-width: min(680px, 80vw); }
+.info-name { font-size: 20px; font-weight: 700; }
+.info-meta { font-size: 14px; color: var(--dim); }
+.epg-box { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+.epg-now { font-size: 17px; font-weight: 700; }
+.epg-desc { font-size: 13px; color: var(--dim); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.epg-next { font-size: 14px; color: var(--dim); }
+.epg-range .bar { max-width: 200px; }
+.message { inset: 0; margin: auto; width: fit-content; height: fit-content; max-width: 70%; padding: 20px; text-align: center; white-space: pre-line; font-size: 17px; }
+.toast { position: fixed; z-index: 50; left: 50%; bottom: 96px; transform: translateX(-50%); background: var(--overlay); padding: 10px 16px; border-radius: 10px; font-size: 14px; }
+
+#controls { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 8px; padding: 40px 24px 20px; background: linear-gradient(transparent, rgba(0,0,0,0.85)); }
+.ctl { border: 0; border-radius: 8px; background: rgba(255,255,255,0.08); padding: 8px 14px; font-size: 15px; cursor: pointer; min-width: 44px; }
+.ctl:hover { background: rgba(255,255,255,0.18); }
+.ctl:focus-visible { background: var(--accent); outline: none; }
+.ctl-time { color: var(--dim); font-size: 14px; font-variant-numeric: tabular-nums; padding: 0 6px; }
+#cSeek { flex: 1; max-width: 520px; accent-color: var(--accent); }
+.live-btn { color: #ff6b6b; }
+.grow { flex: 1; }
+
+/* Lista sobre o vídeo */
+#overlay { position: absolute; inset: 0; display: grid; grid-template-columns: 56fr 44fr; gap: 16px; padding: 24px 32px; }
+.ov-lists { background: var(--surface); border-radius: 12px; padding: 6px; display: grid; grid-template-columns: 38fr 62fr; gap: 6px; min-height: 0; }
+.ov-right { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.slot { aspect-ratio: 16 / 9; width: 100%; border: 0; border-radius: 4px; background: transparent; cursor: pointer; flex: none; position: relative; z-index: 2; }
+.slot:focus-visible, .slot:focus { outline: 4px solid var(--accent); outline-offset: 0; }
+.ov-right .guide { flex: 1; margin-bottom: 0; }
+#player.list-open #stage { z-index: 1; border-radius: 4px; overflow: hidden; }
+#player.list-open #overlay { z-index: 1; }
+
+/* ---------- Diálogos ---------- */
+dialog { background: var(--panel); color: var(--text); border: 0; border-radius: 14px; padding: 22px 24px; width: min(560px, 92vw); box-shadow: 0 20px 60px rgba(0,0,0,0.5); user-select: text; }
+dialog::backdrop { background: rgba(0,0,0,0.6); }
+dialog h2 { margin: 0 0 14px; font-size: 20px; }
+dialog form { display: flex; flex-direction: column; gap: 8px; }
+dialog label { font-size: 14px; color: var(--dim); }
+dialog input[type="url"] { font: inherit; font-size: 14px; color: var(--text); background: var(--bg); border: 1px solid #2f3848; border-radius: 8px; padding: 9px 10px; margin-bottom: 6px; }
+dialog input:focus-visible { outline: 2px solid var(--accent); }
+.check { display: flex; gap: 10px; align-items: center; color: var(--text) !important; font-size: 15px !important; padding: 4px 0; cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); }
+.about { font-size: 13px; color: var(--dim); margin: 6px 0 0; line-height: 1.45; }
+.about.dim { opacity: 0.7; }
+.row-btns, .dialog-btns { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+dialog button { border: 1px solid #2f3848; background: var(--surface); border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+dialog button:hover { border-color: var(--accent); }
+dialog button:focus-visible { outline: 2px solid var(--accent); }
+dialog button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.checks { display: flex; flex-direction: column; max-height: 50vh; overflow-y: auto; gap: 2px; }

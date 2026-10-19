@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src * data: blob:; media-src * data: blob:; connect-src *; worker-src 'self' blob:; font-src 'self' data:">
+<title>Sintonia</title>
+<link rel="stylesheet" href="styles.css">
+<script src="app://sintonia/vendor/hls.min.js"></script>
+<script src="app://sintonia/vendor/shaka-player.compiled.js"></script>
+<script type="module" src="app.mjs"></script>
+</head>
+<body>
+
+<!-- Ecrã principal: grupos | canais | guia do canal focado -->
+<section id="home">
+  <header class="topbar">
+    <h1>Sintonia</h1>
+    <span id="status" class="status"></span>
+    <button id="btnReload" class="icon-btn" title="Atualizar lista (R)" aria-label="Atualizar lista">
+      <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+    </button>
+    <button id="btnSettings" class="icon-btn" title="Definições" aria-label="Definições">
+      <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.47.47 0 0 0-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>
+    </button>
+  </header>
+  <div class="cols">
+    <nav id="groups" class="list groups" aria-label="Grupos"></nav>
+    <div class="channels-col">
+      <div id="channels" class="list channels" aria-label="Canais"></div>
+      <div id="loading" class="center-msg" hidden><div class="spinner"></div></div>
+      <button id="empty" class="center-msg empty" hidden></button>
+    </div>
+    <aside class="guide" id="homeGuide"></aside>
+  </div>
+  <p class="hint">Enter: ver · Botão direito ou F: favorito · Botão direito num grupo: esconder</p>
+</section>
+
+<!-- Leitor -->
+<section id="player" hidden>
+  <div id="stage"><video id="video" playsinline></video></div>
+  <img id="radioLogo" alt="" hidden>
+
+  <div id="info" class="overlay-box info" hidden>
+    <div id="infoName" class="info-name"></div>
+    <div id="infoMeta" class="info-meta"></div>
+    <div id="epgBox" class="epg-box" hidden>
+      <div id="epgNow" class="epg-now"></div>
+      <div class="epg-range"><span id="epgRange"></span><div class="bar"><div id="epgBar"></div></div></div>
+      <div id="epgDesc" class="epg-desc"></div>
+      <div id="epgNext" class="epg-next"></div>
+    </div>
+  </div>
+
+  <div id="message" class="overlay-box message" hidden></div>
+  <div id="spinner" class="spinner big" hidden></div>
+
+  <div id="controls" hidden>
+    <button id="cPlay" class="ctl" title="Pausa / continuar (Espaço)"></button>
+    <button id="cBack" class="ctl vod" title="Recuar 10 s">−10 s</button>
+    <button id="cFwd" class="ctl vod" title="Avançar 10 s">+10 s</button>
+    <span id="cTime" class="ctl-time"></span>
+    <input id="cSeek" type="range" min="0" max="1000" value="0" class="vod" aria-label="Posição">
+    <button id="cLive" class="ctl live-btn" title="Voltar ao direto">● Direto</button>
+    <span class="grow"></span>
+    <button id="cChannels" class="ctl" title="Lista de canais (←)">☰ Canais</button>
+    <button id="cFull" class="ctl" title="Ecrã inteiro (F11)">⛶</button>
+  </div>
+
+  <!-- Lista de canais sobre o vídeo -->
+  <div id="overlay" hidden>
+    <div class="ov-lists">
+      <nav id="ovGroups" class="list groups" aria-label="Grupos"></nav>
+      <div id="ovChannels" class="list channels" aria-label="Canais"></div>
+    </div>
+    <div class="ov-right">
+      <button id="slot" class="slot" title="Ver em ecrã inteiro" aria-label="Ver em ecrã inteiro"></button>
+      <aside class="guide" id="ovGuide"></aside>
+    </div>
+  </div>
+</section>
+
+<!-- Definições -->
+<dialog id="settings">
+  <form method="dialog" id="settingsForm">
+    <h2>Definições</h2>
+    <label for="setUrl">Endereço da lista M3U</label>
+    <input id="setUrl" type="url" spellcheck="false" placeholder="https://…/lista.m3u">
+    <label for="setEpg">Endereço do guia (EPG) — vazio = o indicado na lista</label>
+    <input id="setEpg" type="url" spellcheck="false" placeholder="https://…/guia.xml.gz">
+    <div class="row-btns"><button type="button" id="btnGroups">Grupos visíveis…</button></div>
+    <label class="check"><input type="checkbox" id="setAutoplay"> Ao abrir, começar no último canal visto</label>
+    <label class="check"><input type="checkbox" id="setPreview"> Pré-visualização automática na lista de canais (sem carregar em Enter)</label>
+    <p class="about">Predefinição: lista M3UPT (LITUATUI) — TV e rádio portuguesas, só emissões públicas e oficiais. Alguns canais só funcionam com IP português.</p>
+    <p class="about dim" id="version"></p>
+    <div class="dialog-btns">
+      <button type="button" id="btnResetDefault">Repor M3UPT</button>
+      <span class="grow"></span>
+      <button type="button" id="btnCancel">Cancelar</button>
+      <button type="submit" id="btnSave" class="primary">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="groupsDialog">
+  <form method="dialog">
+    <h2>Grupos visíveis</h2>
+    <div id="groupChecks" class="checks"></div>
+    <div class="dialog-btns">
+      <span class="grow"></span>
+      <button type="button" id="btnGroupsCancel">Cancelar</button>
+      <button type="button" id="btnGroupsSave" class="primary">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<template id="guideTpl">
+  <div class="g-head"><img class="g-logo" alt=""><div class="g-name"></div></div>
+  <div class="g-now"></div>
+  <div class="g-range"><span></span><div class="bar"><div></div></div></div>
+  <div class="g-desc"></div>
+  <div class="g-next-title">A seguir</div>
+  <div class="g-next"></div>
+  <div class="g-empty"></div>
+</template>
+</body>
+</html>

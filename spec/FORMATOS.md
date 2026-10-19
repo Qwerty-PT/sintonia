@@ -5,8 +5,8 @@ esperado em JSON; os testes de cada versão correm sobre esses ficheiros.
 
 | Exemplo | Testado por |
 |---|---|
-| `fixtures/m3u/basico.m3u` | APK: `SpecFixturesTest.m3uBasico` |
-| `fixtures/epg/basico.xml` | APK: `SpecFixturesTest.epgBasico` |
+| `fixtures/m3u/basico.m3u` | APK: `SpecFixturesTest.m3uBasico` · desktop: `npm test` (`desktop/test/spec.test.mjs`) |
+| `fixtures/epg/basico.xml` | APK: `SpecFixturesTest.epgBasico` · desktop: `npm test` |
 | `fixtures/listas/exemplo.txt` | Configurador: `node spec/check-configurador.mjs` (APK: backlog passo 2) |
 
 Quando uma regra muda: atualizar este ficheiro + o exemplo + o `.expected.json`, depois o código.
