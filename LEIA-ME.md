@@ -85,3 +85,27 @@ res/layout/exo_player_control_view.xml  menu do OK do Media3 + botão "Canais"
 - Alguns canais só funcionam com IP português (nota da própria M3UPT).
 - Guia só em linha "agora / a seguir" (sem grelha completa).
 - Num Fire TV Stick mais fraco, o primeiro carregamento do guia pode demorar ~1 min (depois fica em cache).
+
+## Backlog
+
+### VPN por região (para listas com bloqueio geográfico)
+Objetivo: cada lista M3U pode ter uma região associada (ex.: `spain`, `uk`); ao escolher essa lista
+liga a VPN com o `.ovpn` da região; lista sem região → VPN desligada.
+Requer primeiro: várias listas na app (nome + URL + região) e gestão de ficheiros `.ovpn` por região
+(importar por URL ou ficheiro, guardados na memória interna).
+
+**Opção A — controlar o "OpenVPN for Android" (de.blinkt.openvpn)**
+- Único cliente OpenVPN com controlo remoto público. Na Fire TV instala-se à parte (Downloader;
+  F-Droid/GitHub) — testar primeiro um `.ovpn` à mão.
+- API AIDL (serviço `de.blinkt.openvpn.api.IOpenVPNAPIService`): `prepare(pkg)` (autorização uma vez),
+  `prepareVPNService()`, `addNewVPNProfile(nome, editável, config)`, `startProfile(uuid)`, `disconnect()`,
+  `registerStatusCallback` (estados ex.: CONNECTED, AUTH_FAILED). Copiar os .aidl tal como estão no
+  projeto ics-openvpn (a ordem dos métodos importa); manifest: `<queries><package android:name="de.blinkt.openvpn"/></queries>`.
+- Alternativa simples por Intents: atividades `de.blinkt.openvpn.api.ConnectVPN` /
+  `de.blinkt.openvpn.api.DisconnectVPN`, extra `de.blinkt.openvpn.api.profileName` (o perfil tem de existir).
+- OpenVPN Connect e apps de fornecedores (Nord, Surfshark…) não têm API pública.
+
+**Opção B — OpenVPN dentro do Sintonia**
+- `VpnService` próprio + motor OpenVPN embutido (ics-openvpn / openvpn3): uma só app, sem dependências.
+- Mais trabalho (binários nativos por arquitetura, gestão de ligação); licença GPL — só pesa se a
+  app for distribuída.
