@@ -1,0 +1,504 @@
+<title>Configurador de Listas Sintonia</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap">
+<style>
+/* Layout: editor de secções por país à esquerda, ficheiro gerado (pré-visualização viva) à direita; empilha no telemóvel */
+:root {
+  --bg: #f3f5f9;
+  --surface: #ffffff;
+  --surface-2: #e9edf5;
+  --fg: #141a26;
+  --muted: #5b6577;
+  --line: #d6dce8;
+  --accent: #2f6fe0;
+  --accent-ink: #ffffff;
+  --accent-soft: #e2ebfc;
+  --warn: #a85a00;
+  --warn-soft: #fff1dc;
+  --ok: #19794a;
+  --code-bg: #121826;
+  --code-fg: #dfe6f3;
+  --code-dim: #7d8aa3;
+  --code-key: #8fb6ff;
+  --code-name: #f1c27d;
+  --font-display: "Sora", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1118; --surface: #151b26; --surface-2: #1c2431; --fg: #e8edf6; --muted: #98a3b6;
+    --line: #2a3443; --accent: #5b93ff; --accent-ink: #08101f; --accent-soft: #1b2a45;
+    --warn: #ffb35c; --warn-soft: #3a2a14; --ok: #5ed39a;
+    --code-bg: #0a0e15; --code-fg: #dfe6f3; --code-dim: #6f7c94; --code-key: #8fb6ff;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1118; --surface: #151b26; --surface-2: #1c2431; --fg: #e8edf6; --muted: #98a3b6;
+  --line: #2a3443; --accent: #5b93ff; --accent-ink: #08101f; --accent-soft: #1b2a45;
+  --warn: #ffb35c; --warn-soft: #3a2a14; --ok: #5ed39a;
+  --code-bg: #0a0e15; --code-fg: #dfe6f3; --code-dim: #6f7c94; --code-key: #8fb6ff;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 22px; }
+
+header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+h1 { font-family: var(--font-display); font-size: clamp(1.45rem, 3.2vw, 1.9rem); line-height: 1.15; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.lede { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
+.head-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+@media (max-width: 880px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+.notice { display: flex; gap: 10px; align-items: flex-start; background: var(--warn-soft); color: var(--fg);
+  border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); border-radius: 10px; padding: 10px 14px; font-size: 14px; }
+.notice b { color: var(--warn); }
+
+.sections { display: grid; gap: 14px; min-width: 0; }
+.section { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.section-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.flag { font-family: var(--font-mono); font-weight: 500; font-size: 14px; letter-spacing: 0.04em;
+  background: var(--accent-soft); color: var(--accent); border-radius: 6px; padding: 3px 8px; }
+.flag.none { background: var(--surface-2); color: var(--muted); }
+.section-title { font-weight: 600; }
+.chip { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); border: 1px dashed var(--line); border-radius: 999px; padding: 2px 10px; }
+.chip.vpn { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
+.spacer { flex: 1; }
+.code-input { width: 4.6em; font-family: var(--font-mono); text-transform: uppercase; text-align: center; letter-spacing: 0.06em; }
+
+.rows { display: grid; gap: 8px; }
+.row { display: grid; grid-template-columns: 6.5em minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+@media (max-width: 520px) {
+  .row { grid-template-columns: 5.2em minmax(0, 1fr); }
+  .row .row-tools { grid-column: 1 / -1; justify-content: flex-end; }
+}
+.row-tools { display: flex; gap: 4px; }
+.row.bad input.url { border-color: var(--warn); }
+.hint-bad { grid-column: 1 / -1; font-size: 12.5px; color: var(--warn); margin-top: -2px; }
+.empty-rows { color: var(--muted); font-size: 14px; margin: 0; }
+
+input[type="text"], input[type="url"], textarea {
+  font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+  padding: 8px 10px; width: 100%; min-width: 0;
+}
+input.url { font-family: var(--font-mono); font-size: 13.5px; }
+textarea { font-family: var(--font-mono); font-size: 13px; min-height: 140px; resize: vertical; }
+input:focus-visible, textarea:focus-visible, button:focus-visible, label.btn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.btn { font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; border-radius: 8px; padding: 7px 13px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--fg); display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.ghost { background: transparent; }
+.btn.danger:hover { border-color: var(--warn); color: var(--warn); }
+.icon-btn { font: inherit; cursor: pointer; width: 32px; height: 32px; border-radius: 7px; border: 1px solid transparent;
+  background: transparent; color: var(--muted); display: inline-grid; place-items: center; font-size: 15px; }
+.icon-btn:hover { background: var(--surface-2); color: var(--fg); }
+.icon-btn:disabled { opacity: 0.3; cursor: default; background: transparent; }
+
+.add-country { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--surface); border: 1px dashed var(--line); border-radius: 12px; padding: 12px 14px; }
+.add-country .code-input { width: 5.5em; }
+.add-country p { margin: 0; color: var(--muted); font-size: 13.5px; flex-basis: 100%; }
+
+.out { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); display: grid; gap: 12px; min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 12px; min-width: 0; }
+.panel h2 { font-family: var(--font-display); font-size: 1.02rem; margin: 0; }
+.stats { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stats b { color: var(--fg); }
+.preview { margin: 0; background: var(--code-bg); color: var(--code-fg); border-radius: 10px; padding: 14px 16px;
+  font-family: var(--font-mono); font-size: 13px; line-height: 1.6; overflow: auto; max-height: 52vh; white-space: pre; }
+.preview .c { color: var(--code-dim); }
+.preview .k { color: var(--code-key); font-weight: 500; }
+.preview .n { color: var(--code-name); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.status { font-size: 13.5px; color: var(--ok); min-height: 1.4em; }
+.status.err { color: var(--warn); }
+.vpn-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.rules { margin: 0; padding-left: 1.1em; color: var(--muted); font-size: 13.5px; display: grid; gap: 4px; }
+.rules code { font-family: var(--font-mono); font-size: 12.5px; color: var(--fg); }
+details summary { cursor: pointer; font-weight: 500; }
+.confirm { display: inline-flex; gap: 6px; align-items: center; font-size: 13.5px; }
+@media (prefers-reduced-motion: no-preference) { .btn, .icon-btn { transition: border-color .12s, background-color .12s; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Configurador de Listas</h1>
+      <p class="lede">Organiza as listas M3U por país e gera o ficheiro para enviar ao Sintonia. As listas de um país ligam a VPN com o ficheiro <code>.conf</code> desse país; as listas sem país não ligam VPN.</p>
+    </div>
+    <div class="head-actions">
+      <label class="btn" for="fileIn">Abrir ficheiro…</label>
+      <input id="fileIn" type="file" accept=".txt,.m3u,.list,text/plain" hidden>
+      <span id="resetWrap"><button class="btn ghost danger" id="resetBtn" type="button">Começar do zero</button></span>
+    </div>
+  </header>
+
+  <div class="notice" id="exampleNotice" hidden>
+    <span>ℹ︎</span>
+    <span><b>Exemplo.</b> Os URLs de PT, ES e UK são fictícios (<code>exemplo.com</code>). Substitui-os pelos teus ou carrega em “Começar do zero”.</span>
+  </div>
+
+  <div class="layout">
+    <main class="sections" id="sections"></main>
+
+    <aside class="out">
+      <section class="panel">
+        <h2>Ficheiro gerado</h2>
+        <div class="stats" id="stats"></div>
+        <pre class="preview" id="preview" aria-label="Conteúdo do ficheiro"></pre>
+        <div class="actions">
+          <button class="btn primary" id="copyBtn" type="button">Copiar texto</button>
+          <button class="btn" id="saveBtn" type="button" hidden>Descarregar .txt</button>
+        </div>
+        <div class="status" id="status" role="status"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Ficheiros VPN necessários</h2>
+        <div class="vpn-list" id="vpnList"></div>
+        <ul class="rules">
+          <li>Envia-os ao Sintonia com o mesmo nome: código do país em minúsculas + <code>.conf</code>.</li>
+          <li>Listas do país onde o IP já está (ex.: PT em casa ou no router com cartão PT) não ligam VPN.</li>
+        </ul>
+      </section>
+
+      <section class="panel">
+        <details id="pasteBox">
+          <summary>Colar um ficheiro existente</summary>
+          <div style="display:grid;gap:8px;margin-top:10px">
+            <textarea id="pasteIn" spellcheck="false" placeholder="###M3U Lists###&#10;https://...&#10;&#10;[PT]&#10;01&#10;https://..."></textarea>
+            <div class="actions"><button class="btn" id="pasteBtn" type="button">Ler texto colado</button></div>
+          </div>
+        </details>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<script>
+(() => {
+  const STORE_KEY = "sintonia-listas-v1";
+  const HEADER = "###M3U Lists###";
+  const EXAMPLE = {
+    example: true,
+    groups: [
+      { code: "", items: [{ name: "M3UPT", url: "https://raw.githubusercontent.com/LITUATUI/M3UPT/main/M3U/M3UPT.m3u" }] },
+      { code: "PT", items: [{ name: "01", url: "https://exemplo.com/pt/lista1.m3u" }, { name: "02", url: "https://exemplo.com/pt/lista2.m3u" }] },
+      { code: "ES", items: [{ name: "01", url: "https://exemplo.com/es/lista.m3u" }] },
+      { code: "UK", items: [{ name: "01", url: "https://exemplo.com/uk/lista.m3u" }] },
+    ],
+  };
+
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  let state = load() || clone(EXAMPLE);
+
+  // ---------- Formato (as mesmas regras que o Sintonia vai usar) ----------
+  const isUrl = (s) => /^https?:\/\/\S+$/i.test(s.trim());
+  const cleanCode = (s) => s.trim().toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3);
+
+  function parse(text) {
+    const groups = [{ code: "", items: [] }];
+    let cur = groups[0];
+    let pendingName = "";
+    const ignored = [];
+    text.split(/\r?\n/).forEach((raw, i) => {
+      const line = raw.trim().replace(/^﻿/, "");
+      if (!line || line.startsWith("#")) return;
+      const sec = line.match(/^\[\s*([A-Za-z]{2,3})\s*\]$/);
+      if (sec) {
+        const code = sec[1].toUpperCase();
+        cur = groups.find((g) => g.code === code) || (groups.push({ code, items: [] }), groups[groups.length - 1]);
+        pendingName = "";
+        return;
+      }
+      if (isUrl(line)) { cur.items.push({ name: pendingName, url: line }); pendingName = ""; return; }
+      if (pendingName) ignored.push(i + 1);
+      pendingName = line;
+    });
+    return { groups, ignored };
+  }
+
+  function generate() {
+    const out = [HEADER];
+    state.groups.forEach((g) => {
+      const items = g.items.filter((it) => it.url.trim());
+      if (!items.length) return;
+      if (g.code) out.push("", `[${g.code}]`);
+      items.forEach((it) => { if (it.name.trim()) out.push(it.name.trim()); out.push(it.url.trim()); });
+    });
+    return out.join("\n") + "\n";
+  }
+
+  // ---------- Guardar rascunho neste browser ----------
+  function load() {
+    try {
+      const v = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
+      if (v && Array.isArray(v.groups) && v.groups.length && v.groups[0].code === "") return v;
+    } catch (e) {}
+    return null;
+  }
+  function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {} }
+
+  function touched() {
+    if (state.example) { state.example = false; $("#exampleNotice").hidden = true; }
+    save();
+  }
+
+  // ---------- Interface ----------
+  const $ = (s) => document.querySelector(s);
+  const el = (tag, attrs = {}, ...kids) => {
+    const n = document.createElement(tag);
+    Object.entries(attrs).forEach(([k, v]) => {
+      if (k === "class") n.className = v;
+      else if (k === "text") n.textContent = v;
+      else if (k.startsWith("data-")) n.setAttribute(k, v);
+      else if (k in n) n[k] = v;
+      else n.setAttribute(k, v);
+    });
+    kids.flat().forEach((c) => c != null && n.append(c));
+    return n;
+  };
+
+  function render() {
+    const host = $("#sections");
+    host.replaceChildren();
+    state.groups.forEach((g, gi) => host.append(renderSection(g, gi)));
+    host.append(renderAddCountry());
+    $("#exampleNotice").hidden = !state.example;
+    refreshOutput();
+  }
+
+  function renderSection(g, gi) {
+    const head = el("div", { class: "section-head" });
+    if (!g.code) {
+      head.append(el("span", { class: "flag none", text: "—" }), el("span", { class: "section-title", text: "Sem país" }),
+        el("span", { class: "chip", text: "sem VPN" }));
+    } else {
+      const code = el("input", { type: "text", class: "code-input", id: `code-${gi}`, value: g.code, maxLength: 3, "aria-label": "Código do país" });
+      code.addEventListener("change", () => {
+        const c = cleanCode(code.value);
+        if (!c || c.length < 2) { code.value = g.code; flash("O código do país tem 2 ou 3 letras (ex.: PT, ES, UK).", true); return; }
+        const other = state.groups.findIndex((x, i) => i !== gi && x.code === c);
+        if (other >= 0) {
+          state.groups[other].items.push(...g.items);
+          state.groups.splice(gi, 1);
+          flash(`Juntei as listas a ${c}, que já existia.`);
+        } else g.code = c;
+        touched(); render();
+      });
+      head.append(el("span", { class: "flag", text: "País" }), code,
+        el("span", { class: "chip vpn", text: `VPN: ${g.code.toLowerCase()}.conf` }), el("span", { class: "spacer" }));
+      head.append(confirmButton("Remover país", () => { state.groups.splice(gi, 1); touched(); render(); }));
+    }
+
+    const rows = el("div", { class: "rows" });
+    if (!g.items.length) rows.append(el("p", { class: "empty-rows", text: "Ainda sem listas neste grupo." }));
+    g.items.forEach((it, ii) => rows.append(renderRow(g, gi, it, ii)));
+
+    const add = el("button", { class: "btn", type: "button", text: "+ Adicionar lista" });
+    add.addEventListener("click", () => {
+      g.items.push({ name: g.code ? String(g.items.length + 1).padStart(2, "0") : "", url: "" });
+      touched(); render();
+      document.getElementById(`url-${gi}-${g.items.length - 1}`)?.focus();
+    });
+
+    return el("section", { class: "section", "aria-label": g.code ? `País ${g.code}` : "Sem país" }, head, rows, el("div", {}, add));
+  }
+
+  function renderRow(g, gi, it, ii) {
+    const name = el("input", { type: "text", id: `name-${gi}-${ii}`, value: it.name, placeholder: "nome", "aria-label": "Nome da lista" });
+    const url = el("input", { type: "url", class: "url", id: `url-${gi}-${ii}`, value: it.url, placeholder: "https://…/lista.m3u", "aria-label": "Endereço da lista", spellcheck: false });
+    const row = el("div", { class: "row" });
+    const hint = el("div", { class: "hint-bad", text: "O endereço tem de começar por http:// ou https:// e não pode ter espaços." });
+    const check = () => {
+      const bad = it.url.trim() !== "" && !isUrl(it.url);
+      row.classList.toggle("bad", bad);
+      hint.hidden = !bad;
+    };
+    name.addEventListener("input", () => { it.name = name.value.replace(/^[#\[]+/, ""); touched(); refreshOutput(); });
+    url.addEventListener("input", () => { it.url = url.value; check(); touched(); refreshOutput(); });
+
+    const up = el("button", { class: "icon-btn", type: "button", title: "Subir", "aria-label": "Subir", text: "↑", disabled: ii === 0 });
+    const down = el("button", { class: "icon-btn", type: "button", title: "Descer", "aria-label": "Descer", text: "↓", disabled: ii === g.items.length - 1 });
+    const del = el("button", { class: "icon-btn", type: "button", title: "Remover lista", "aria-label": "Remover lista", text: "✕" });
+    up.addEventListener("click", () => { [g.items[ii - 1], g.items[ii]] = [g.items[ii], g.items[ii - 1]]; touched(); render(); });
+    down.addEventListener("click", () => { [g.items[ii + 1], g.items[ii]] = [g.items[ii], g.items[ii + 1]]; touched(); render(); });
+    del.addEventListener("click", () => { g.items.splice(ii, 1); touched(); render(); });
+
+    row.append(name, url, el("div", { class: "row-tools" }, up, down, del), hint);
+    check();
+    return row;
+  }
+
+  function renderAddCountry() {
+    const input = el("input", { type: "text", class: "code-input", id: "newCode", placeholder: "FR", maxLength: 3, "aria-label": "Código do novo país" });
+    const btn = el("button", { class: "btn", type: "button", text: "Adicionar país" });
+    const addIt = () => {
+      const c = cleanCode(input.value);
+      if (c.length < 2) { flash("Escreve o código do país com 2 ou 3 letras (ex.: FR, IT, UK).", true); input.focus(); return; }
+      if (state.groups.some((g) => g.code === c)) { flash(`${c} já existe.`, true); return; }
+      state.groups.push({ code: c, items: [{ name: "01", url: "" }] });
+      touched(); render();
+      document.getElementById(`url-${state.groups.length - 1}-0`)?.focus();
+    };
+    btn.addEventListener("click", addIt);
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addIt(); } });
+    return el("div", { class: "add-country" }, input, btn,
+      el("p", { text: "Usa o mesmo código que vais dar ao ficheiro da VPN: ES → es.conf." }));
+  }
+
+  // Botão com confirmação na própria página (o viewer não mostra confirm())
+  function confirmButton(label, onYes) {
+    const wrap = el("span", { class: "confirm" });
+    const show = () => {
+      const b = el("button", { class: "btn ghost danger", type: "button", text: label });
+      b.addEventListener("click", ask);
+      wrap.replaceChildren(b);
+    };
+    const ask = () => {
+      const yes = el("button", { class: "btn danger", type: "button", text: "Sim, remover" });
+      const no = el("button", { class: "btn ghost", type: "button", text: "Cancelar" });
+      yes.addEventListener("click", onYes);
+      no.addEventListener("click", show);
+      wrap.replaceChildren(el("span", { text: "Remover?" }), yes, no);
+      no.focus();
+    };
+    show();
+    return wrap;
+  }
+
+  // ---------- Saída ----------
+  function highlight(text) {
+    const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+    return text.split("\n").map((l) => {
+      if (l.startsWith("#")) return `<span class="c">${esc(l)}</span>`;
+      if (/^\[[A-Z]{2,3}\]$/.test(l)) return `<span class="k">${esc(l)}</span>`;
+      if (l && !isUrl(l)) return `<span class="n">${esc(l)}</span>`;
+      return esc(l);
+    }).join("\n");
+  }
+
+  function refreshOutput() {
+    const text = generate();
+    $("#preview").innerHTML = highlight(text);
+    const valid = (g) => g.items.filter((it) => isUrl(it.url));
+    const total = state.groups.reduce((n, g) => n + valid(g).length, 0);
+    const countries = state.groups.filter((g) => g.code && valid(g).length);
+    const bad = state.groups.reduce((n, g) => n + g.items.filter((it) => it.url.trim() && !isUrl(it.url)).length, 0);
+    const empty = state.groups.reduce((n, g) => n + g.items.filter((it) => !it.url.trim()).length, 0);
+    const stats = $("#stats");
+    stats.replaceChildren(
+      el("span", {}, el("b", { text: String(total) }), ` lista${total === 1 ? "" : "s"}`),
+      el("span", {}, el("b", { text: String(countries.length) }), ` país${countries.length === 1 ? "" : "es"} com VPN`),
+    );
+    if (bad) stats.append(el("span", { style: "color:var(--warn)", text: `${bad} endereço${bad === 1 ? "" : "s"} inválido${bad === 1 ? "" : "s"} (não entra${bad === 1 ? "" : "m"} no ficheiro)` }));
+    if (empty) stats.append(el("span", { text: `${empty} sem endereço (ignorada${empty === 1 ? "" : "s"})` }));
+
+    const vl = $("#vpnList");
+    vl.replaceChildren(...(countries.length
+      ? countries.map((g) => el("span", { class: "chip vpn", text: `${g.code.toLowerCase()}.conf` }))
+      : [el("span", { class: "chip", text: "nenhum — todas as listas são sem VPN" })]));
+  }
+
+  let flashTimer;
+  function flash(msg, err = false) {
+    const s = $("#status");
+    s.textContent = msg;
+    s.classList.toggle("err", err);
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => { s.textContent = ""; }, 5000);
+  }
+
+  function importText(text, origin) {
+    const { groups, ignored } = parse(text);
+    const n = groups.reduce((a, g) => a + g.items.length, 0);
+    if (!n) { flash(`Não encontrei listas em ${origin}. Cada lista precisa de uma linha com http:// ou https://.`, true); return; }
+    state = { example: false, groups };
+    save(); render();
+    flash(`Li ${n} lista${n === 1 ? "" : "s"} de ${origin}.` + (ignored.length ? ` Linhas sem endereço a seguir ignoradas: ${ignored.join(", ")}.` : ""));
+  }
+
+  // ---------- Ações ----------
+  $("#copyBtn").addEventListener("click", () => {
+    const text = generate();
+    const fallback = () => {
+      const r = document.createRange(); r.selectNodeContents($("#preview"));
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      flash("Texto selecionado: copia com Ctrl+C / ⌘C.");
+    };
+    try {
+      navigator.clipboard.writeText(text).then(() => flash("Texto copiado. Cola-o no “Receber do telemóvel” do Sintonia."), fallback);
+    } catch (e) { fallback(); }
+  });
+
+  $("#fileIn").addEventListener("change", (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => importText(String(r.result || ""), `“${f.name}”`);
+    r.onerror = () => flash("Não consegui ler o ficheiro.", true);
+    r.readAsText(f);
+    e.target.value = "";
+  });
+
+  $("#pasteBtn").addEventListener("click", () => {
+    const t = $("#pasteIn").value;
+    if (!t.trim()) { flash("Cola primeiro o texto do ficheiro.", true); return; }
+    importText(t, "texto colado");
+    $("#pasteIn").value = ""; $("#pasteBox").open = false;
+  });
+
+  // "Começar do zero" com confirmação na página
+  (function setupReset() {
+    const wrap = $("#resetWrap");
+    const show = () => {
+      const b = el("button", { class: "btn ghost danger", id: "resetBtn", type: "button", text: "Começar do zero" });
+      b.addEventListener("click", ask); wrap.replaceChildren(b);
+    };
+    const ask = () => {
+      const yes = el("button", { class: "btn danger", type: "button", text: "Apagar tudo" });
+      const no = el("button", { class: "btn ghost", type: "button", text: "Cancelar" });
+      yes.addEventListener("click", () => { state = { example: false, groups: [{ code: "", items: [] }] }; save(); render(); show(); flash("Configuração limpa."); });
+      no.addEventListener("click", show);
+      wrap.replaceChildren(yes, no); no.focus();
+    };
+    show();
+  })();
+
+  // Descarregar ficheiro (capacidade "downloads"; sem ela, fica só o Copiar)
+  let downloads = null;
+  if (window.claude && typeof window.claude.use === "function") {
+    window.claude.use("downloads").then((d) => {
+      downloads = d;
+      if (d) $("#saveBtn").hidden = false;
+    }).catch(() => {});
+  }
+  $("#saveBtn").addEventListener("click", async () => {
+    if (!downloads) return;
+    try {
+      await downloads.save({ filename: "listas-sintonia.txt", data: generate() });
+      flash("Ficheiro guardado.");
+    } catch (e) {
+      const code = e && e.code;
+      if (code === "declined") flash("Descarga cancelada.");
+      else if (code === "rate_limited") flash("Há outro pedido de descarga aberto. Tenta daqui a pouco.", true);
+      else { $("#saveBtn").hidden = true; flash("Aqui não é possível descarregar. Usa “Copiar texto”.", true); }
+    }
+  });
+
+  render();
+})();
+</script>

@@ -99,6 +99,7 @@ res/layout/exo_player_control_view.xml  menu do OK do Media3 + botão "Canais"
 - Servidor HTTP leve dentro da app, só ativo enquanto o ecrã estiver aberto (segurança: só rede local).
 
 ### 2. Configuração de listas por país (ficheiro do utilizador)
+Gerador do ficheiro: `ferramentas/configurador-listas.html` (também publicado como página "Configurador de Listas").
 Enviada pelo "Receber do telemóvel" (colar texto / ficheiro .txt) ou por URL (relida periodicamente —
 editar o ficheiro no servidor atualiza a TV). Cada envio **substitui** todas as listas (o ficheiro é a
 fonte de verdade); favoritos e grupos escondidos mantêm-se por lista.
