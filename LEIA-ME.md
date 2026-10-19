@@ -126,8 +126,14 @@ Regras:
 - Nome na app: "PT · 01"; URL sem nome antes → "Lista N".
 - Código do país → ficheiro `<código em minúsculas>.conf` (ou `.ovpn` no plano B).
 - Falta o `.conf` da região → lista mostra "falta es.conf" e não abre (sem falsa proteção).
-- Definição "País onde estou" (omissão PT): listas desse país não ligam VPN; fora dele, ligam
-  (o mesmo ficheiro serve em casa e em viagem).
+- "País onde estou" = **Automático por IP** (com opção de fixar à mão): listas do país detetado não
+  ligam VPN; as restantes ligam o `.conf` do seu país (o mesmo ficheiro serve em casa e em viagem).
+  - Deteção: com a VPN desligada, pedir `https://www.cloudflare.com/cdn-cgi/trace` → linha `loc=XX`
+    (sem conta/chave). Ao arrancar e quando a rede muda; se falhar, usar o último país conhecido.
+  - Decide pelo IP (é o que os bloqueios geográficos usam), não pela localização física. Ex.: router 5G
+    da autocaravana com cartão PT em roaming na UE (home routing) → IP PT em qualquer país → listas [PT]
+    sem VPN; listas [ES] ligam es.conf mesmo em Espanha. Wi-Fi local / cartão local → IP do país.
+  - Mostrar no topo: "IP: PT · VPN desligada" / "IP: PT · VPN ES ligada".
 - Lista escolhida sem país → VPN desligada.
 
 ### 3. VPN por região — decisão: **WireGuard embutido** (favorito)
