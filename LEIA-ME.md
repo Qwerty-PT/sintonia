@@ -88,13 +88,30 @@ res/layout/exo_player_control_view.xml  menu do OK do Media3 + botão "Canais"
 
 ## Backlog
 
-### VPN por região (para listas com bloqueio geográfico)
-Objetivo: cada lista M3U pode ter uma região associada (ex.: `spain`, `uk`); ao escolher essa lista
-liga a VPN com o `.ovpn` da região; lista sem região → VPN desligada.
-Requer primeiro: várias listas na app (nome + URL + região) e gestão de ficheiros `.ovpn` por região
-(importar por URL ou ficheiro, guardados na memória interna).
+### 1. "Receber do telemóvel" (base para o resto)
+- Nas Definições: "Receber do telemóvel" mostra um endereço (ex.: `http://192.168.1.50:8080`).
+- Abre-se no browser do telemóvel → página simples para:
+  - enviar ficheiros de VPN (`.conf` WireGuard / `.ovpn`) e escolher a região;
+  - colar/adicionar URLs de listas M3U (evita escrever com o comando).
+- Ficheiros vão para a memória interna do Sintonia: sem permissões de armazenamento, funciona em qualquer
+  Fire OS / Google TV (o LocalSend + pasta Download falha no Fire OS 8 sem "acesso a todos os ficheiros",
+  e muitas Fire TV não têm seletor de ficheiros).
+- Servidor HTTP leve dentro da app, só ativo enquanto o ecrã estiver aberto (segurança: só rede local).
 
-**Opção A — controlar o "OpenVPN for Android" (de.blinkt.openvpn)**
+### 2. Várias listas M3U com região
+- Cada lista: nome + URL + região opcional (ex.: `espanha`, `uk`).
+- Escolher lista → se tiver região liga a VPN dessa região; sem região → VPN desligada.
+
+### 3. VPN por região — decisão: **WireGuard embutido** (favorito)
+- Biblioteca oficial WireGuard para Android, licença permissiva (Apache 2.0/MIT, confirmar antes de
+  distribuir) → uma só app, sem GPL, leve na Fire TV.
+- Um `.conf` por região (servidor fixo num país). Fornecedores com `.conf`: Surfshark (VPN → Manual setup →
+  Router → WireGuard), NordVPN (Nord Account → Manual configuration, desde out/2026), Proton VPN, IPVanish,
+  PrivateVPN, IVPN, Hide.me…
+- Alguns fornecedores expiram os ficheiros (ex.: 30 dias) → substituir é só reenviar pelo telemóvel.
+
+**Plano B — só para fornecedores que deem apenas `.ovpn`:**
+*B1 — controlar o "OpenVPN for Android" (de.blinkt.openvpn), app instalada à parte*
 - Único cliente OpenVPN com controlo remoto público. Na Fire TV instala-se à parte (Downloader;
   F-Droid/GitHub) — testar primeiro um `.ovpn` à mão.
 - API AIDL (serviço `de.blinkt.openvpn.api.IOpenVPNAPIService`): `prepare(pkg)` (autorização uma vez),
@@ -105,7 +122,7 @@ Requer primeiro: várias listas na app (nome + URL + região) e gestão de fiche
   `de.blinkt.openvpn.api.DisconnectVPN`, extra `de.blinkt.openvpn.api.profileName` (o perfil tem de existir).
 - OpenVPN Connect e apps de fornecedores (Nord, Surfshark…) não têm API pública.
 
-**Opção B — OpenVPN dentro do Sintonia**
+*B2 — OpenVPN dentro do Sintonia*
 - `VpnService` próprio + motor OpenVPN embutido (ics-openvpn / openvpn3): uma só app, sem dependências.
 - Mais trabalho (binários nativos por arquitetura, gestão de ligação); licença GPL — só pesa se a
   app for distribuída.
