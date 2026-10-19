@@ -1,0 +1,13 @@
+{
+  "groups": [
+    { "code": "", "vpnFile": null, "items": [ { "name": "", "url": "https://sem-pais.exemplo/lista.m3u" } ] },
+    { "code": "PT", "vpnFile": "pt.conf", "items": [
+      { "name": "01", "url": "https://pt.exemplo/1.m3u" },
+      { "name": "02", "url": "https://pt.exemplo/2.m3u" } ] },
+    { "code": "ES", "vpnFile": "es.conf", "items": [ { "name": "01", "url": "https://es.exemplo/1.m3u" } ] },
+    { "code": "UK", "vpnFile": "uk.conf", "items": [
+      { "name": "", "url": "https://uk.exemplo/sem-nome.m3u" },
+      { "name": "outro nome", "url": "https://uk.exemplo/2.m3u" } ] }
+  ],
+  "ignoredLines": [16]
+}

@@ -1,0 +1,18 @@
+{
+  "input": {
+    "wantedIds": ["RTP1.pt"],
+    "wantedNames": ["canal x"],
+    "from": "20251019000000 +0000",
+    "to": "20251020000000 +0000"
+  },
+  "nameToId": { "canal x": "X.pt" },
+  "programmes": {
+    "RTP1.pt": [
+      { "start": 1760853600000, "stop": 1760857200000, "title": "Bom Dia Portugal", "desc": "Notícias & tempo" },
+      { "start": 1760857200000, "stop": 1760860800000, "title": "Praça da Alegria", "desc": null }
+    ],
+    "X.pt": [
+      { "start": 1760857200000, "stop": 1760860800000, "title": "Por nome", "desc": null }
+    ]
+  }
+}

@@ -59,7 +59,7 @@ Vem pré-configurado com a lista **M3UPT** (LITUATUI, licença MIT):
 - Android Studio: abrir a pasta, Build → Build APK(s).
 - Linha de comandos: `./gradlew assembleRelease` → `app/build/outputs/apk/release/app-release.apk`
 - GitHub Actions: `.github/workflows/build.yml` compila a cada push na `main` (artefacto `sintonia-apk`).
-- Testes do leitor M3U: `./gradlew testReleaseUnitTest`
+- Testes: `./gradlew testReleaseUnitTest` (inclui os exemplos de `spec/`) e `node spec/check-configurador.mjs`
   (com a lista real: `M3U_FILE=/caminho/M3UPT.m3u ./gradlew testReleaseUnitTest -i`).
 
 A chave de assinatura está em `keystore/sintonia.jks` (palavra-passe em `app/build.gradle.kts`) para que
@@ -76,6 +76,7 @@ app/src/main/java/pt/nuno/sintonia/
   MainActivity.kt   lista (grupos/canais/favoritos/definições)
   PlayerActivity.kt leitor (zapping, religar, PiP, gestos)
   GuidePanel.kt     painel do guia do canal focado · Catalog.kt: grupos/favoritos
+app/src/test/…/SpecFixturesTest.kt  testes sobre os exemplos partilhados de spec/
   Adapters.kt, Prefs.kt, Device.kt
 res/layout/exo_player_control_view.xml  menu do OK do Media3 + botão "Canais"
 ```
@@ -86,9 +87,30 @@ res/layout/exo_player_control_view.xml  menu do OK do Media3 + botão "Canais"
 - Guia só em linha "agora / a seguir" (sem grelha completa).
 - Num Fire TV Stick mais fraco, o primeiro carregamento do guia pode demorar ~1 min (depois fica em cache).
 
+## Versões APK e desktop
+
+O **APK é a versão principal**; o desktop (Mac/Windows/Linux, Electron) segue atrás sem o travar.
+
+```
+app/          APK (principal)
+desktop/      Electron — Mac/Windows/Linux (a criar na 1.ª porta)
+spec/         formatos (FORMATOS.md) + exemplos com resultado esperado, partilhados pelos testes
+ferramentas/  configurador de listas, etc.
+```
+Regras:
+- **Tudo nasce no APK.** Só passa ao desktop depois de estável no APK.
+- **Portas em lote**: quando o APK chega a uma versão estável, o desktop recebe tudo de uma vez e fica com
+  o mesmo número de versão (desktop 1.8 = mesmo comportamento que APK 1.8).
+- **`spec/` é a fonte de verdade**: mudar uma regra = atualizar `spec/FORMATOS.md` + exemplo + `.expected.json`;
+  os testes de cada versão correm sobre os mesmos ficheiros.
+- No backlog, cada item marcado 📺 APK, 💻 desktop ou ambos.
+- Âmbito do desktop: leitor, lista com janela do vídeo, guia, favoritos, grupos visíveis; teclado
+  (setas, Enter, Esc) e rato. Fica de fora o que é só de TV/telemóvel.
+
 ## Backlog
 
-### 1. "Receber do telemóvel" (base para o resto)
+
+### 1. "Receber do telemóvel" (base para o resto) — 📺 APK (desktop: não precisa, tem ficheiros)
 - Nas Definições: "Receber do telemóvel" mostra um endereço (ex.: `http://192.168.1.50:8080`).
 - Abre-se no browser do telemóvel → página simples para:
   - enviar ficheiros de VPN (`.conf` WireGuard / `.ovpn`) e escolher a região;
@@ -98,7 +120,7 @@ res/layout/exo_player_control_view.xml  menu do OK do Media3 + botão "Canais"
   e muitas Fire TV não têm seletor de ficheiros).
 - Servidor HTTP leve dentro da app, só ativo enquanto o ecrã estiver aberto (segurança: só rede local).
 
-### 2. Configuração de listas por país (ficheiro do utilizador)
+### 2. Configuração de listas por país (ficheiro do utilizador) — 📺💻 ambos
 Gerador do ficheiro: `ferramentas/configurador-listas.html` (também publicado como página "Configurador de Listas").
 Enviada pelo "Receber do telemóvel" (colar texto / ficheiro .txt) ou por URL (relida periodicamente —
 editar o ficheiro no servidor atualiza a TV). Cada envio **substitui** todas as listas (o ficheiro é a
@@ -145,7 +167,7 @@ Regras:
   - Topo: "VPN: ES (manual)" / "VPN: UK (auto)" / "VPN: desligada".
 - Lista escolhida sem país → VPN desligada.
 
-### 3. VPN por região — decisão: **WireGuard embutido** (favorito)
+### 3. VPN por região — decisão: **WireGuard embutido** (favorito) — 📺 APK primeiro; 💻 desktop depois (outra forma de ligar)
 - Biblioteca oficial WireGuard para Android, licença permissiva (Apache 2.0/MIT, confirmar antes de
   distribuir) → uma só app, sem GPL, leve na Fire TV.
 - Um `.conf` por região (servidor fixo num país). Fornecedores com `.conf`: Surfshark (VPN → Manual setup →

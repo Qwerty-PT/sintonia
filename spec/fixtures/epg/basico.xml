@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tv>
+  <channel id="RTP1.pt"><display-name>RTP 1</display-name></channel>
+  <channel id="X.pt"><display-name>Canal X</display-name></channel>
+  <channel id="Z.pt"><display-name>Outro</display-name></channel>
+  <programme start="20251019060000 +0000" stop="20251019070000 +0000" channel="RTP1.pt">
+    <title lang="pt">Bom Dia Portugal</title><desc>Notícias &amp; tempo</desc>
+  </programme>
+  <programme start="20251019080000 +0100" stop="20251019090000 +0100" channel="RTP1.pt"><title>Praça da Alegria</title></programme>
+  <programme start="20251019070000 +0000" stop="20251019080000 +0000" channel="X.pt"><title>Por nome</title></programme>
+  <programme start="20251019070000 +0000" stop="20251019080000 +0000" channel="Z.pt"><title>Ignorar (canal não pedido)</title></programme>
+  <programme start="20251001070000 +0000" stop="20251001080000 +0000" channel="RTP1.pt"><title>Ignorar (fora da janela)</title></programme>
+</tv>

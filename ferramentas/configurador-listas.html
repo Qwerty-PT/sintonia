@@ -209,10 +209,12 @@ details summary { cursor: pointer; font-weight: 500; }
   const isUrl = (s) => /^https?:\/\/\S+$/i.test(s.trim());
   const cleanCode = (s) => s.trim().toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3);
 
+  // spec:listas-parse-start (testado contra spec/fixtures/listas)
   function parse(text) {
     const groups = [{ code: "", items: [] }];
     let cur = groups[0];
     let pendingName = "";
+    let pendingLine = 0;
     const ignored = [];
     text.split(/\r?\n/).forEach((raw, i) => {
       const line = raw.trim().replace(/^﻿/, "");
@@ -225,11 +227,13 @@ details summary { cursor: pointer; font-weight: 500; }
         return;
       }
       if (isUrl(line)) { cur.items.push({ name: pendingName, url: line }); pendingName = ""; return; }
-      if (pendingName) ignored.push(i + 1);
+      if (pendingName) ignored.push(pendingLine); // nome sem endereço a seguir: descartado
       pendingName = line;
+      pendingLine = i + 1;
     });
     return { groups, ignored };
   }
+  // spec:listas-parse-end
 
   function generate() {
     const out = [HEADER];

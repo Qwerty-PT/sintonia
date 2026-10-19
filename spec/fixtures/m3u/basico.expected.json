@@ -1,0 +1,38 @@
+{
+  "epgUrls": ["https://exemplo/epg.xml.gz", "https://exemplo/epg2.xml"],
+  "channels": [
+    {
+      "name": "RTP 1", "group": "TV", "url": "https://streaming-live.rtp.pt/rtp1/playlist.m3u8",
+      "tvgId": "RTP1.pt", "logo": "https://x/rtp1.png", "isRadio": false,
+      "userAgent": "Mozilla/5.0 Teste",
+      "headers": { "Origin": "https://www.rtp.pt", "Referer": "https://www.rtp.pt/play" },
+      "drmType": null, "drmKey": null, "key": "TV|RTP 1"
+    },
+    {
+      "name": "NBC, com vírgula", "group": "TV", "url": "https://exemplo/master.mpd",
+      "tvgId": null, "logo": "https://x/nbc.png", "isRadio": false,
+      "userAgent": null, "headers": {},
+      "drmType": "org.w3.clearkey",
+      "drmKey": "52e6281b1d3c364c872497e8058977b1:11d6e9a2abb2e241804148713531f64d",
+      "key": "TV|NBC, com vírgula"
+    },
+    {
+      "name": "Antena 1", "group": "Rádios", "url": "https://radio/antena1.m3u8",
+      "tvgId": null, "logo": null, "isRadio": true,
+      "userAgent": "VLC", "headers": { "Referer": "https://rtp.pt" },
+      "drmType": null, "drmKey": null, "key": "Rádios|Antena 1"
+    },
+    {
+      "name": "Só nome", "group": "Outros", "url": "http://exemplo/so.ts",
+      "tvgId": null, "logo": null, "isRadio": false,
+      "userAgent": null, "headers": {},
+      "drmType": null, "drmKey": null, "key": "Outros|Só nome"
+    },
+    {
+      "name": "Com EXTHTTP", "group": "TV", "url": "https://exemplo/x.m3u8",
+      "tvgId": "X.pt", "logo": null, "isRadio": false,
+      "userAgent": "UA-Http", "headers": { "Referer": "https://ref.pt/" },
+      "drmType": null, "drmKey": null, "key": "TV|Com EXTHTTP"
+    }
+  ]
+}

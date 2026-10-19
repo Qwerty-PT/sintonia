@@ -1,0 +1,31 @@
+#EXTM3U url-tvg="https://exemplo/epg.xml.gz,https://exemplo/epg2.xml"
+
+# Comentário: linhas começadas por # que não são diretivas são ignoradas
+
+#EXTINF:-1 group-title="TV" tvg-id="RTP1.pt" tvg-logo="https://x/rtp1.png",RTP 1
+#EXTVLCOPT:http-user-agent="Mozilla/5.0 Teste"
+#EXTVLCOPT:http-origin=https://www.rtp.pt
+#EXTVLCOPT:http-referrer=https://www.rtp.pt/play
+https://streaming-live.rtp.pt/rtp1/playlist.m3u8
+
+#EXTINF:-1 group-title="TV" tvg-logo="https://x/nbc.png",NBC, com vírgula
+#KODIPROP:inputstream.adaptive.license_type=org.w3.clearkey
+#KODIPROP:inputstream.adaptive.license_key=52e6281b1d3c364c872497e8058977b1:11d6e9a2abb2e241804148713531f64d
+#https://url-comentado/ignorar.m3u8
+https://exemplo/master.mpd
+
+#EXTINF:-1 radio="true" group-title="Rádios" tvg-logo="",Antena 1
+https://radio/antena1.m3u8|User-Agent=VLC&Referer=https%3A%2F%2Frtp.pt
+
+#EXTINF:-1,Sem grupo e sem URL válido
+plugin://plugin.video.youtube/abc
+
+#EXTINF:-1 tvg-name="Só nome"
+http://exemplo/so.ts
+
+#EXTINF:-1 group-title="Canal desativado",Desativado
+#https://so-comentado/nao-entra.m3u8
+
+#EXTINF:-1 group-title="TV;Notícias" tvg-id="X.pt",Com EXTHTTP
+#EXTHTTP:{"User-Agent":"UA-Http","Referer":"https://ref.pt/"}
+https://exemplo/x.m3u8

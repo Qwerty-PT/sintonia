@@ -69,4 +69,5 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("net.sf.kxml:kxml2:2.3.0") // XmlPullParser real nos testes JVM
+    testImplementation("org.json:json:20240303")   // ler os .expected.json de spec/
 }

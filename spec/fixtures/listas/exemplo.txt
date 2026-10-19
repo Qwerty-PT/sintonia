@@ -1,0 +1,18 @@
+###M3U Lists###
+https://sem-pais.exemplo/lista.m3u
+
+[PT]
+01
+https://pt.exemplo/1.m3u
+02
+https://pt.exemplo/2.m3u
+
+[es]
+01
+https://es.exemplo/1.m3u
+
+[UK]
+https://uk.exemplo/sem-nome.m3u
+nome perdido
+outro nome
+https://uk.exemplo/2.m3u
