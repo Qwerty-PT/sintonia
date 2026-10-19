@@ -98,9 +98,37 @@ res/layout/exo_player_control_view.xml  menu do OK do Media3 + botão "Canais"
   e muitas Fire TV não têm seletor de ficheiros).
 - Servidor HTTP leve dentro da app, só ativo enquanto o ecrã estiver aberto (segurança: só rede local).
 
-### 2. Várias listas M3U com região
-- Cada lista: nome + URL + região opcional (ex.: `espanha`, `uk`).
-- Escolher lista → se tiver região liga a VPN dessa região; sem região → VPN desligada.
+### 2. Configuração de listas por país (ficheiro do utilizador)
+Enviada pelo "Receber do telemóvel" (colar texto / ficheiro .txt) ou por URL (relida periodicamente —
+editar o ficheiro no servidor atualiza a TV). Cada envio **substitui** todas as listas (o ficheiro é a
+fonte de verdade); favoritos e grupos escondidos mantêm-se por lista.
+
+Formato:
+```
+###M3U Lists###          ← título/comentário (ignorado)
+https://...              ← antes de qualquer [XX]: lista SEM VPN
+
+[PT]                     ← secção de país → usa pt.conf
+01                       ← linha que não é URL = nome da lista seguinte
+https://...
+02
+https://...
+
+[ES]
+01
+https://...              ← usa es.conf
+
+[UK]
+01
+https://...              ← usa uk.conf
+```
+Regras:
+- Nome na app: "PT · 01"; URL sem nome antes → "Lista N".
+- Código do país → ficheiro `<código em minúsculas>.conf` (ou `.ovpn` no plano B).
+- Falta o `.conf` da região → lista mostra "falta es.conf" e não abre (sem falsa proteção).
+- Definição "País onde estou" (omissão PT): listas desse país não ligam VPN; fora dele, ligam
+  (o mesmo ficheiro serve em casa e em viagem).
+- Lista escolhida sem país → VPN desligada.
 
 ### 3. VPN por região — decisão: **WireGuard embutido** (favorito)
 - Biblioteca oficial WireGuard para Android, licença permissiva (Apache 2.0/MIT, confirmar antes de
