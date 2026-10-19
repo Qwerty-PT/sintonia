@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Sintonia</string>
+    <string name="favourites">★ Favoritos</string>
+    <string name="radio">Rádio</string>
+    <string name="reload">Atualizar lista</string>
+    <string name="settings">Definições</string>
+    <string name="save">Guardar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="reset_default">Repor M3UPT</string>
+    <string name="playlist_url">Endereço da lista M3U</string>
+    <string name="auto_preview">Pré-visualização automática na lista de canais (sem carregar em OK)</string>
+    <string name="autoplay_last">Ao abrir, começar no último canal visto</string>
+    <string name="about">Predefinição: lista M3UPT (LITUATUI) — TV e rádio portuguesas, só emissões públicas e oficiais. Alguns canais só funcionam com IP português.\n\nMantenha OK premido (ou toque longo) num canal para o pôr nos favoritos, ou num grupo para o esconder.</string>
+    <string name="version_fmt">Sintonia %1$s</string>
+    <string name="updated">Lista atualizada</string>
+    <string name="offline_using_cache">Sem ligação — a usar a lista guardada</string>
+    <string name="load_error">Não foi possível carregar a lista.\n%1$s\n\nOK / toque para tentar de novo</string>
+    <string name="status_count">%1$d canais</string>
+    <string name="status_fmt">%1$d canais · atualizada às %2$s</string>
+    <string name="fav_added">%1$s adicionado aos favoritos</string>
+    <string name="fav_removed">%1$s removido dos favoritos</string>
+    <string name="reconnecting">A religar… (%1$d/%2$d)</string>
+    <string name="cannot_open">Não foi possível abrir este canal.\n%1$s\n\n▲ ▼ para mudar de canal</string>
+    <string name="info_meta">%1$d/%2$d · %3$s</string>
+    <string name="guide_loading">guia a carregar…</string>
+    <string name="guide_ready">guia: %1$d canais</string>
+    <string name="guide_error">guia indisponível</string>
+    <string name="guide_none">sem guia</string>
+    <string name="epg_url">Endereço do guia (EPG) — vazio = o indicado na lista</string>
+    <string name="epg_now">Agora: %1$s</string>
+    <string name="epg_next">A seguir %1$s · %2$s</string>
+    <string name="epg_range">%1$s – %2$s</string>
+    <string name="channels">Canais</string>
+    <string name="visible_groups">Grupos visíveis</string>
+    <string name="visible_groups_btn">Grupos visíveis…</string>
+    <string name="group_hidden">Grupo \"%1$s\" escondido — repor em Definições → Grupos visíveis</string>
+    <string name="groups_keep_one">Tem de ficar pelo menos um grupo visível</string>
+    <string name="fullscreen">Ver em ecrã inteiro</string>
+    <string name="next_up">A seguir</string>
+    <string name="no_guide">Sem guia para este canal</string>
+    <string name="guide_wait">O guia ainda está a carregar…</string>
+    <string name="prev_channel">Canal anterior</string>
+    <string name="next_channel">Canal seguinte</string>
+</resources>

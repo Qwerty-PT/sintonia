@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- margens de segurança (overscan) nas TVs -->
+    <dimen name="page_h">48dp</dimen>
+    <dimen name="page_v">24dp</dimen>
+    <dimen name="groups_width">240dp</dimen>
+    <dimen name="channel_text">18sp</dimen>
+    <dimen name="guide_width">360dp</dimen>
+</resources>

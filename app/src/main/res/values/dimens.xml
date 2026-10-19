@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="page_h">12dp</dimen>
+    <dimen name="page_v">8dp</dimen>
+    <dimen name="groups_width">220dp</dimen>
+    <dimen name="channel_text">17sp</dimen>
+    <dimen name="guide_width">280dp</dimen>
+</resources>

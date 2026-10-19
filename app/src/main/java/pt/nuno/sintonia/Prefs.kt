@@ -1,0 +1,60 @@
+package pt.nuno.sintonia
+
+import android.content.Context
+
+class Prefs(context: Context) {
+    private val sp = context.getSharedPreferences("sintonia", Context.MODE_PRIVATE)
+
+    var playlistUrl: String
+        get() = sp.getString("url", null)?.takeIf { it.isNotBlank() } ?: DEFAULT_URL
+        set(v) = sp.edit().putString("url", v.trim()).apply()
+
+    /** Ao abrir a app, começar logo no último canal visto. */
+    var autoplayLast: Boolean
+        get() = sp.getBoolean("autoplay", true)
+        set(v) = sp.edit().putBoolean("autoplay", v).apply()
+
+    /** Na lista sobre o vídeo: pré-visualizar o canal focado sem carregar em OK. */
+    var autoPreview: Boolean
+        get() = sp.getBoolean("auto_preview", false)
+        set(v) = sp.edit().putBoolean("auto_preview", v).apply()
+
+    var lastKey: String?
+        get() = sp.getString("last_key", null)
+        set(v) = sp.edit().putString("last_key", v).apply()
+
+    var lastGroup: String?
+        get() = sp.getString("last_group", null)
+        set(v) = sp.edit().putString("last_group", v).apply()
+
+    var lastUpdate: Long
+        get() = sp.getLong("last_update", 0L)
+        set(v) = sp.edit().putLong("last_update", v).apply()
+
+    /** Endereço do guia definido à mão (vazio = o da lista, url-tvg). */
+    var epgUrl: String
+        get() = sp.getString("epg_url", "") ?: ""
+        set(v) = sp.edit().putString("epg_url", v.trim()).apply()
+
+    var epgUpdate: Long
+        get() = sp.getLong("epg_update", 0L)
+        set(v) = sp.edit().putLong("epg_update", v).apply()
+
+    var epgSource: String
+        get() = sp.getString("epg_source", "") ?: ""
+        set(v) = sp.edit().putString("epg_source", v).apply()
+
+    /** Grupos escondidos (os novos aparecem por omissão). */
+    var hiddenGroups: Set<String>
+        get() = sp.getStringSet("hidden_groups", emptySet())!!.toSet()
+        set(v) = sp.edit().putStringSet("hidden_groups", HashSet(v)).apply()
+
+    var favourites: Set<String>
+        get() = sp.getStringSet("fav", emptySet())!!.toSet()
+        set(v) = sp.edit().putStringSet("fav", HashSet(v)).apply()
+
+    companion object {
+        /** Lista M3UPT (LITUATUI) — TV e rádio portuguesas, emissões públicas e oficiais. */
+        const val DEFAULT_URL = "https://raw.githubusercontent.com/LITUATUI/M3UPT/main/M3U/M3UPT.m3u"
+    }
+}
