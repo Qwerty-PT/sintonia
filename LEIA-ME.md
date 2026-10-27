@@ -9,7 +9,8 @@ Vem pré-configurado com a lista **M3UPT** (LITUATUI, licença MIT):
 - Logótipos dos canais, ★ Favoritos (manter OK premido / toque longo)
 - Grupos visíveis à escolha (Definições → Grupos visíveis…, ou manter OK premido num grupo para o esconder);
   grupos novos da lista aparecem por omissão
-- Abre no último canal visto (desligável nas Definições)
+- Abre no menu principal (opção nas Definições para ir direto ao último canal visto)
+- Topo do menu: Atualizar · Definições · Sair (Voltar duas vezes no menu também sai)
 - Leitor Media3/ExoPlayer: HLS, DASH, MP4/TS, áudio (rádios com logótipo)
 - Cabeçalhos por canal da M3UPT: `#EXTVLCOPT` (User-Agent, Referer, Origin), `#KODIPROP` (ClearKey,
   stream_headers), `#EXTHTTP` e `url|User-Agent=…&Referer=…`
@@ -39,7 +40,8 @@ Vem pré-configurado com a lista **M3UPT** (LITUATUI, licença MIT):
 | ▶ / INFO / GUIA | Mostra o nome do canal (3 s) |
 | Voltar (ecrã inteiro) | Abre a lista com o canal na janela |
 | Voltar (lista, nos canais/janela) | Volta a ecrã inteiro |
-| Voltar (lista, nos grupos) | Sai para o ecrã principal (no telemóvel: Voltar na lista sai) |
+| Voltar (lista, nos grupos) | Vai para o menu principal (no telemóvel: Voltar na lista) |
+| Voltar 2× no menu principal | Sai da app (ou botão "Sair") |
 | ◀ na lista de canais | Volta aos grupos |
 
 ## Definições (⚙)
@@ -47,7 +49,7 @@ Vem pré-configurado com a lista **M3UPT** (LITUATUI, licença MIT):
 - "Repor M3UPT" volta à predefinição
 - Endereço do guia (vazio = o indicado na lista)
 - Grupos visíveis… (desmarcar os que não interessam, ex.: "Teste")
-- Arranque no último canal
+- Ao abrir, ir diretamente para o último canal (desligado = abre o menu principal)
 - Pré-visualização automática na lista de canais (desligada = só com OK)
 
 ## Instalar

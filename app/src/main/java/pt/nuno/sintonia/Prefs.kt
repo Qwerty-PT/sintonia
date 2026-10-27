@@ -9,10 +9,10 @@ class Prefs(context: Context) {
         get() = sp.getString("url", null)?.takeIf { it.isNotBlank() } ?: DEFAULT_URL
         set(v) = sp.edit().putString("url", v.trim()).apply()
 
-    /** Ao abrir a app, começar logo no último canal visto. */
+    /** Ao abrir a app, ir diretamente para o último canal visto (por omissão abre o menu principal). */
     var autoplayLast: Boolean
-        get() = sp.getBoolean("autoplay", true)
-        set(v) = sp.edit().putBoolean("autoplay", v).apply()
+        get() = sp.getBoolean("autoplay_v2", false) // chave nova: até à 1.9 a omissão era "ligado"
+        set(v) = sp.edit().putBoolean("autoplay_v2", v).apply()
 
     /** Na lista sobre o vídeo: pré-visualizar o canal focado sem carregar em OK. */
     var autoPreview: Boolean

@@ -26,22 +26,53 @@
         android:textColor="@color/text_dim"
         android:textSize="14sp" />
 
-    <ImageButton
+    <TextView
         android:id="@+id/btnReload"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+        android:layout_width="wrap_content"
+        android:layout_height="44dp"
         android:background="@drawable/bg_item"
-        android:contentDescription="@string/reload"
+        android:clickable="true"
+        android:drawableStart="@drawable/ic_refresh"
+        android:drawablePadding="8dp"
         android:focusable="true"
-        android:src="@drawable/ic_refresh" />
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="14dp"
+        android:text="@string/btn_reload"
+        android:textColor="@color/text"
+        android:textSize="15sp" />
 
-    <ImageButton
+    <TextView
         android:id="@+id/btnSettings"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_marginStart="4dp"
+        android:layout_width="wrap_content"
+        android:layout_height="44dp"
+        android:layout_marginStart="6dp"
         android:background="@drawable/bg_item"
-        android:contentDescription="@string/settings"
+        android:clickable="true"
+        android:drawableStart="@drawable/ic_settings"
+        android:drawablePadding="8dp"
         android:focusable="true"
-        android:src="@drawable/ic_settings" />
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="14dp"
+        android:text="@string/settings"
+        android:textColor="@color/text"
+        android:textSize="15sp" />
+
+    <TextView
+        android:id="@+id/btnExit"
+        android:layout_width="wrap_content"
+        android:layout_height="44dp"
+        android:layout_marginStart="6dp"
+        android:background="@drawable/bg_item"
+        android:clickable="true"
+        android:drawableStart="@drawable/ic_exit"
+        android:drawablePadding="8dp"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="14dp"
+        android:text="@string/btn_exit"
+        android:textColor="@color/text"
+        android:textSize="15sp" />
 </LinearLayout>

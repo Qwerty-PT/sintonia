@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.view.View
 import android.widget.CheckBox
 import android.widget.EditText
-import android.widget.ImageButton
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
@@ -41,6 +40,7 @@ class MainActivity : AppCompatActivity() {
     private var byGroup: Map<String, List<Channel>> = emptyMap()
     private var refreshing = false
     private var autoplayDone = false
+    private var lastBackAt = 0L
 
     private val favLabel by lazy { getString(R.string.favourites) }
 
@@ -76,13 +76,18 @@ class MainActivity : AppCompatActivity() {
         channelsRv.layoutManager = LinearLayoutManager(this)
         channelsRv.adapter = channelAdapter
 
-        findViewById<ImageButton>(R.id.btnReload).setOnClickListener { refresh(userAsked = true) }
-        findViewById<ImageButton>(R.id.btnSettings).setOnClickListener { openSettings() }
+        findViewById<View>(R.id.btnReload).setOnClickListener { refresh(userAsked = true) }
+        findViewById<View>(R.id.btnSettings).setOnClickListener { openSettings() }
+        findViewById<View>(R.id.btnExit).setOnClickListener { finishAffinity() }
         empty.setOnClickListener { refresh(userAsked = true) }
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (isTv && groupsVertical && channelsRv.hasFocus()) focusSelectedGroup() else finish()
+                if (groupsVertical && channelsRv.hasFocus()) { focusSelectedGroup(); return }
+                // Sair: Voltar duas vezes seguidas (ou o botão "Sair")
+                val now = System.currentTimeMillis()
+                if (now - lastBackAt < 2500) finishAffinity()
+                else { lastBackAt = now; toast(getString(R.string.press_back_again)) }
             }
         })
 

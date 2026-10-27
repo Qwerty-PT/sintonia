@@ -10,7 +10,7 @@
     <string name="reset_default">Repor M3UPT</string>
     <string name="playlist_url">Endereço da lista M3U</string>
     <string name="auto_preview">Pré-visualização automática na lista de canais (sem carregar em OK)</string>
-    <string name="autoplay_last">Ao abrir, começar no último canal visto</string>
+    <string name="autoplay_last">Ao abrir, ir diretamente para o último canal visto (em vez do menu principal)</string>
     <string name="about">Predefinição: lista M3UPT (LITUATUI) — TV e rádio portuguesas, só emissões públicas e oficiais. Alguns canais só funcionam com IP português.\n\nMantenha OK premido (ou toque longo) num canal para o pôr nos favoritos, ou num grupo para o esconder.</string>
     <string name="version_fmt">Sintonia %1$s</string>
     <string name="updated">Lista atualizada</string>
@@ -32,6 +32,10 @@
     <string name="epg_next">A seguir %1$s · %2$s</string>
     <string name="epg_range">%1$s – %2$s</string>
     <string name="channels">Canais</string>
+    <string name="btn_reload">Atualizar</string>
+    <string name="btn_exit">Sair</string>
+    <string name="press_back_again">Carrega outra vez em Voltar para sair</string>
+    <string name="overlay_hint">◀ grupos · Voltar nos grupos: menu principal</string>
     <string name="auto_update">Procurar atualizações automaticamente</string>
     <string name="check_updates">Procurar atualizações agora</string>
     <string name="update_title">Nova versão %1$s</string>
