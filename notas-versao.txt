@@ -1,1 +1,1 @@
-Atualizações: corrigido o ciclo "dar permissões" em algumas TVs (ex.: TCL) — depois de autorizar, instala diretamente.
+Ícone novo, em coral e laranja.
