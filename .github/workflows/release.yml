@@ -1,13 +1,23 @@
 name: Release APK (atualização automática)
 
 # Publicar uma versão nova:
-#   1. subir versionCode/versionName em app/build.gradle.kts e fazer commit
-#   2. git tag -a v1.9 -m "O que mudou (aparece na TV ao atualizar)" && git push --follow-tags
-# O Sintonia instalado vê a release nova (update.json) e propõe "Instalar".
+#   1. subir versionCode/versionName em app/build.gradle.kts
+#   2. escrever o que mudou em notas-versao.txt (aparece na TV ao atualizar)
+#   3. commit + push para a main
+# Se ainda não existir a release v<versionName>, este workflow testa, compila, assina e publica-a
+# (cria a tag). O Sintonia instalado vê a release nova (update.json) e propõe "Instalar".
+# Também corre com uma tag vX.Y (usa a mensagem da tag) ou à mão (Run workflow).
 
 on:
   push:
+    branches: [main]
+    paths: ["app/**", "notas-versao.txt", ".github/workflows/release.yml"]
     tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -20,20 +30,48 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Notas da versão (mensagem da tag)
+      - name: Versão da app e se já está publicada
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          git fetch --force origin "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
-          git tag -l --format='%(contents)' "$GITHUB_REF_NAME" | sed '/^-----BEGIN PGP/,$d' > "$RUNNER_TEMP/notas.txt"
+          NAME=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          CODE=$(grep -oP 'versionCode = \K[0-9]+' app/build.gradle.kts)
+          TAG="v$NAME"
+          if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$GITHUB_REF_NAME" != "$TAG" ]; then
+            echo "::error::A tag $GITHUB_REF_NAME não corresponde ao versionName $NAME"; exit 1
+          fi
+          echo "VNAME=$NAME" >> "$GITHUB_ENV"
+          echo "VCODE=$CODE" >> "$GITHUB_ENV"
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "A release $TAG já existe — nada a publicar."
+            echo "SKIP=1" >> "$GITHUB_ENV"
+          fi
+
+      - name: Notas da versão
+        if: env.SKIP != '1'
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            git fetch --force origin "refs/tags/${TAG}:refs/tags/${TAG}"
+            git tag -l --format='%(contents)' "$TAG" | sed '/^-----BEGIN PGP/,$d' > "$RUNNER_TEMP/notas.txt"
+          elif [ -f notas-versao.txt ]; then
+            cp notas-versao.txt "$RUNNER_TEMP/notas.txt"
+          else
+            git log -1 --format=%s > "$RUNNER_TEMP/notas.txt"
+          fi
           cat "$RUNNER_TEMP/notas.txt"
 
       - uses: actions/setup-java@v4
+        if: env.SKIP != '1'
         with:
           distribution: temurin
           java-version: 17
 
       - uses: gradle/actions/setup-gradle@v4
+        if: env.SKIP != '1'
 
       - name: Chave de assinatura (segredos)
+        if: env.SKIP != '1'
         env:
           KS_B64: ${{ secrets.SINTONIA_KEYSTORE_BASE64 }}
           KS_PW: ${{ secrets.SINTONIA_KEYSTORE_PASSWORD }}
@@ -45,25 +83,18 @@ jobs:
           echo "SINTONIA_KEYSTORE_FILE=$RUNNER_TEMP/sintonia.jks" >> "$GITHUB_ENV"
           echo "SINTONIA_KEYSTORE_PASSWORD=$KS_PW" >> "$GITHUB_ENV"
 
-      - name: Versão da tag = versão da app
-        run: |
-          NAME=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
-          CODE=$(grep -oP 'versionCode = \K[0-9]+' app/build.gradle.kts)
-          if [ "v$NAME" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::A tag $GITHUB_REF_NAME não corresponde ao versionName $NAME"; exit 1
-          fi
-          echo "VNAME=$NAME" >> "$GITHUB_ENV"
-          echo "VCODE=$CODE" >> "$GITHUB_ENV"
-
       - name: Testes
+        if: env.SKIP != '1'
         run: |
           ./gradlew testReleaseUnitTest
           node spec/check-configurador.mjs
 
       - name: Compilar APK assinado
+        if: env.SKIP != '1'
         run: ./gradlew assembleRelease
 
       - name: Verificar assinatura e preparar ficheiros
+        if: env.SKIP != '1'
         run: |
           BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
           APK="Sintonia-$VNAME.apk"
@@ -75,7 +106,7 @@ jobs:
           python3 - "$APK" "$SHA" <<'PY'
           import json, os, sys
           apk, sha = sys.argv[1], sys.argv[2]
-          tag = os.environ["GITHUB_REF_NAME"]
+          tag = os.environ["TAG"]
           repo = os.environ["GITHUB_REPOSITORY"]
           notes = open(os.path.join(os.environ["RUNNER_TEMP"], "notas.txt"), encoding="utf-8").read().strip()
           json.dump({
@@ -89,8 +120,9 @@ jobs:
           cat update.json
 
       - name: Publicar a release
+        if: env.SKIP != '1'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" "Sintonia-$VNAME.apk" update.json \
+          gh release create "$TAG" "Sintonia-$VNAME.apk" update.json --target "$GITHUB_SHA" \
             --title "Sintonia $VNAME" --notes-file "$RUNNER_TEMP/notas.txt" --latest

@@ -61,7 +61,7 @@ Vem pré-configurado com a lista **M3UPT** (LITUATUI, licença MIT):
 - Android Studio: abrir a pasta, Build → Build APK(s).
 - Linha de comandos: `./gradlew assembleRelease` → `app/build/outputs/apk/release/app-release.apk`
 - GitHub Actions: `build.yml` testa e compila a cada push na `main` (artefacto `sintonia-apk`);
-  `release.yml` publica a versão quando se cria uma tag `vX.Y` (ver "Atualização automática").
+  `release.yml` publica a versão quando o `versionName` muda (ver "Atualização automática").
 - Testes: `./gradlew testReleaseUnitTest` (inclui os exemplos de `spec/`) e `node spec/check-configurador.mjs`
   (com a lista real: `M3U_FILE=/caminho/M3UPT.m3u ./gradlew testReleaseUnitTest -i`).
 
@@ -88,9 +88,9 @@ Vem pré-configurado com a lista **M3UPT** (LITUATUI, licença MIT):
 - Na 1.ª atualização, o Android pede para autorizar o Sintonia a instalar apps. Na Fire TV:
   Definições → A minha Fire TV → Opções de programador → Instalar apps desconhecidas → Sintonia: Ligado.
 - Definições: "Procurar atualizações automaticamente" (ligado) e "Procurar atualizações agora".
-- **Publicar uma versão:** subir `versionCode`/`versionName` em `app/build.gradle.kts`, commit, e
-  `git tag -a v1.10 -m "o que mudou"` + `git push --follow-tags`. O workflow `release.yml` testa, compila,
-  assina, gera o `update.json` e cria a release; a mensagem da tag aparece na TV.
+- **Publicar uma versão:** subir `versionCode`/`versionName` em `app/build.gradle.kts`, escrever o que mudou em
+  `notas-versao.txt` (aparece na TV) e fazer push para a `main`. O workflow `release.yml` vê que ainda não há
+  release `v<versionName>`, testa, compila, assina, gera o `update.json` e publica-a (cria a tag).
 
 ## Estrutura
 ```

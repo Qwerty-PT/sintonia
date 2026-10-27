@@ -1,0 +1,1 @@
+Atualização automática: a partir desta versão o Sintonia procura versões novas sozinho e propõe instalá-las.
