@@ -100,7 +100,7 @@ class MainActivity : AppCompatActivity() {
                 launch { EpgRepo.version.collect { refreshEpgRows() } }
                 launch { EpgRepo.state.collect { updateStatus() } }
                 launch { ChannelCheck.progress.collect { updateStatus() } }
-                launch { ChannelCheck.version.collect { refreshEpgRows() } }
+                launch { ChannelCheck.version.collect { refreshEpgRows(); updateStatus() } }
                 launch { while (true) { delay(60_000); refreshEpgRows() } }
             }
         }
@@ -322,8 +322,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateStatus() {
-        val n = PlaylistRepo.channels.size
-        if (n == 0) { status.text = ""; return }
+        if (PlaylistRepo.channels.isEmpty()) { status.text = ""; return }
+        // conta só o que se vê: sem os grupos escondidos (nem os canais em baixo, se escondidos)
+        val hidden = prefs.hiddenGroups
+        val hideDead = prefs.hideDead
+        val n = PlaylistRepo.channels.count { it.group !in hidden && !(hideDead && ChannelCheck.isDead(it)) }
         val t = prefs.lastUpdate
         val base = if (t > 0) {
             getString(R.string.status_fmt, n, DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(t)))

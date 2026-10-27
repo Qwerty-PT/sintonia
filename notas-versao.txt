@@ -1,2 +1,1 @@
-Verificação automática de canais: em segundo plano a app vê quais canais estão em baixo ("✕ não está a funcionar") ou bloqueados no país ("⚠ bloqueado"). ▲▼ salta os que estão em baixo; nas Definições podes escondê-los ou verificar agora.
-Mais rápido: o guia chega já preparado (~200 KB em vez de dezenas de MB), os canais arrancam com menos espera e os vizinhos ficam pré-ligados para mudar de canal mais depressa. As Definições mostram quanto demora a mudar de canal.
+O número de canais no topo passa a contar só os grupos visíveis (sem os que escondeste).
