@@ -484,7 +484,8 @@ class PlayerActivity : AppCompatActivity() {
             }
         } else {
             ovChannelsRv.scrollToPosition(0)
-            if (!ovChannelsRv.hasFocus()) ovGuide.bind(items.firstOrNull())
+            // sem foco (toque): continua a mostrar o canal que está a tocar
+            if (!ovChannelsRv.hasFocus()) ovGuide.bind(current ?: items.firstOrNull())
         }
     }
 
@@ -512,6 +513,7 @@ class PlayerActivity : AppCompatActivity() {
         Session.list = items
         Session.index = pos
         playCurrent()
+        ovGuide.bind(items[pos]) // ao toque não há foco: o guia mostra o canal que passou a tocar
     }
 
     /**

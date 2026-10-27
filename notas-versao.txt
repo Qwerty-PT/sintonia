@@ -1,1 +1,2 @@
-O número de canais no topo passa a contar só os grupos visíveis (sem os que escondeste).
+Telemóvel: os botões do topo ficam só com o ícone quando não cabem (toque longo mostra o nome).
+Lista sobre o vídeo: o guia mostra o canal que está a tocar (antes ficava no primeiro da lista ao tocar no ecrã).

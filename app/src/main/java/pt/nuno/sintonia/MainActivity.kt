@@ -82,6 +82,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnReload).setOnClickListener { refresh(userAsked = true) }
         findViewById<View>(R.id.btnSettings).setOnClickListener { openSettings() }
         findViewById<View>(R.id.btnExit).setOnClickListener { finishAffinity() }
+        compactTopBarIfNarrow()
         empty.setOnClickListener { refresh(userAsked = true) }
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -294,6 +295,24 @@ class MainActivity : AppCompatActivity() {
             PlaylistRepo.channels.filter { it.key in favs }
         } else byGroup[g].orEmpty()
         return if (prefs.hideDead) list.filterNot { ChannelCheck.isDead(it) } else list
+    }
+
+    /**
+     * Telemóvel ao alto: os três botões com texto não cabem — ficam só com o ícone (o nome passa a
+     * descrição de acessibilidade e aparece com toque longo). Na TV e em paisagem ficam com texto.
+     */
+    private fun compactTopBarIfNarrow() {
+        if (resources.configuration.screenWidthDp >= 600) return
+        val pad = (10 * resources.displayMetrics.density).toInt()
+        listOf(R.id.btnReload, R.id.btnSettings, R.id.btnExit).forEach { id ->
+            val b = findViewById<TextView>(id)
+            val label = b.text
+            b.contentDescription = label
+            b.text = ""
+            b.compoundDrawablePadding = 0
+            b.setPadding(pad, 0, pad, 0)
+            b.setOnLongClickListener { Toast.makeText(this, label, Toast.LENGTH_SHORT).show(); true }
+        }
     }
 
     // ---------- Verificação de canais ----------
