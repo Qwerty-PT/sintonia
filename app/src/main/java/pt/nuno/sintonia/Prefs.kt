@@ -49,6 +49,24 @@ class Prefs(context: Context) {
         get() = sp.getStringSet("hidden_groups", emptySet())!!.toSet()
         set(v) = sp.edit().putStringSet("hidden_groups", HashSet(v)).apply()
 
+    /** Procurar versões novas no GitHub ao abrir a app (no máximo de 6 em 6 h). */
+    var autoUpdate: Boolean
+        get() = sp.getBoolean("auto_update", true)
+        set(v) = sp.edit().putBoolean("auto_update", v).apply()
+
+    var updateChecked: Long
+        get() = sp.getLong("update_checked", 0L)
+        set(v) = sp.edit().putLong("update_checked", v).apply()
+
+    /** "Mais tarde": não voltar a perguntar por esta versão durante 24 h. */
+    var updateSnoozedCode: Int
+        get() = sp.getInt("update_snoozed_code", 0)
+        set(v) = sp.edit().putInt("update_snoozed_code", v).apply()
+
+    var updateSnoozedAt: Long
+        get() = sp.getLong("update_snoozed_at", 0L)
+        set(v) = sp.edit().putLong("update_snoozed_at", v).apply()
+
     var favourites: Set<String>
         get() = sp.getStringSet("fav", emptySet())!!.toSet()
         set(v) = sp.edit().putStringSet("fav", HashSet(v)).apply()

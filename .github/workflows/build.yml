@@ -3,6 +3,7 @@ name: Compilar APK
 on:
   push:
     branches: [main]
+    paths-ignore: ["desktop/**"]
   workflow_dispatch:
 
 jobs:
@@ -24,8 +25,16 @@ jobs:
       - name: Configurador de listas contra spec/
         run: node spec/check-configurador.mjs
 
-      - name: Compilar APK assinado
-        run: ./gradlew assembleRelease
+      - name: Compilar APK (assinado se os segredos existirem)
+        env:
+          KS_B64: ${{ secrets.SINTONIA_KEYSTORE_BASE64 }}
+          SINTONIA_KEYSTORE_PASSWORD: ${{ secrets.SINTONIA_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/sintonia.jks"
+            export SINTONIA_KEYSTORE_FILE="$RUNNER_TEMP/sintonia.jks"
+          fi
+          ./gradlew assembleRelease
 
       - uses: actions/upload-artifact@v4
         with:

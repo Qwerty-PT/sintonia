@@ -62,6 +62,18 @@
             android:layout_height="wrap_content"
             android:text="@string/auto_preview" />
 
+        <CheckBox
+            android:id="@+id/autoUpdate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/auto_update" />
+
+        <Button
+            android:id="@+id/btnCheckUpdates"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/check_updates" />
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

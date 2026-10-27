@@ -113,6 +113,77 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         // As listas com URLs temporários (ex.: TVI) envelhecem — atualiza em segundo plano
         if (PlaylistRepo.channels.isNotEmpty() && isStale()) refresh(userAsked = false)
+        resumeUpdate()
+    }
+
+    // ---------- Atualização automática (GitHub Releases) ----------
+
+    private var updateDialog: AlertDialog? = null
+    /** Carregou "Instalar" mas faltava a autorização: ao voltar das definições, instala logo. */
+    private var installAfterPermission = false
+
+    private fun resumeUpdate() {
+        val ready = Updater.pending
+        if (ready != null && installAfterPermission) {
+            installAfterPermission = false
+            if (Updater.canInstall(this)) startInstall(ready)
+            return
+        }
+        if (ready != null) { offerUpdate(ready, userAsked = false); return }
+        if (Updater.shouldCheck(this)) {
+            lifecycleScope.launch {
+                val r = Updater.check(this@MainActivity)
+                if (r is Updater.Result.Available && !isFinishing) offerUpdate(r.ready, userAsked = false)
+            }
+        }
+    }
+
+    private fun checkUpdatesNow() {
+        toast(getString(R.string.update_checking))
+        lifecycleScope.launch {
+            when (val r = Updater.check(this@MainActivity)) {
+                is Updater.Result.Available -> offerUpdate(r.ready, userAsked = true)
+                is Updater.Result.UpToDate -> toast(getString(R.string.update_none, BuildConfig.VERSION_NAME))
+                is Updater.Result.Failed -> toast(getString(R.string.update_failed, r.message))
+            }
+        }
+    }
+
+    private fun offerUpdate(ready: Updater.Ready, userAsked: Boolean) {
+        if (isFinishing || updateDialog?.isShowing == true) return
+        val snoozed = prefs.updateSnoozedCode == ready.info.versionCode &&
+            System.currentTimeMillis() - prefs.updateSnoozedAt < 24 * 60 * 60 * 1000L
+        if (snoozed && !userAsked) return
+        updateDialog = AlertDialog.Builder(this)
+            .setTitle(getString(R.string.update_title, ready.info.versionName))
+            .setMessage(getString(R.string.update_msg, ready.info.versionName, ready.info.notes).trim())
+            .setPositiveButton(R.string.update_install) { _, _ -> startInstall(ready) }
+            .setNegativeButton(R.string.update_later) { _, _ ->
+                prefs.updateSnoozedCode = ready.info.versionCode
+                prefs.updateSnoozedAt = System.currentTimeMillis()
+            }
+            .show()
+        updateDialog?.getButton(AlertDialog.BUTTON_POSITIVE)?.requestFocus()
+    }
+
+    private fun startInstall(ready: Updater.Ready) {
+        if (!Updater.canInstall(this)) {
+            val fireTv = packageManager.hasSystemFeature("amazon.hardware.fire_tv")
+            AlertDialog.Builder(this)
+                .setTitle(R.string.update_perm_title)
+                .setMessage(if (fireTv) R.string.update_perm_firetv else R.string.update_perm_msg)
+                .setPositiveButton(R.string.update_perm_open) { _, _ ->
+                    installAfterPermission = true
+                    if (!Updater.openInstallPermission(this)) {
+                        // Fire TV sem esse ecrã: abre as definições gerais
+                        try { startActivity(Intent(android.provider.Settings.ACTION_SETTINGS)) } catch (_: Exception) {}
+                    }
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+            return
+        }
+        if (!Updater.install(this, ready)) toast(getString(R.string.update_install_failed))
     }
 
     private fun isStale() = System.currentTimeMillis() - prefs.lastUpdate > 2 * 60 * 60 * 1000L
@@ -330,7 +401,11 @@ class MainActivity : AppCompatActivity() {
         url.setText(prefs.playlistUrl)
         epg.setText(prefs.epgUrl)
         auto.isChecked = prefs.autoplayLast
-        v.findViewById<TextView>(R.id.version).text = getString(R.string.version_fmt, BuildConfigCompat.versionName(this))
+        v.findViewById<TextView>(R.id.version).text = getString(R.string.version_fmt, BuildConfig.VERSION_NAME)
+        val autoUpdate = v.findViewById<CheckBox>(R.id.autoUpdate)
+        autoUpdate.isChecked = prefs.autoUpdate
+        autoUpdate.setOnCheckedChangeListener { _, on -> prefs.autoUpdate = on }
+        v.findViewById<View>(R.id.btnCheckUpdates).setOnClickListener { checkUpdatesNow() }
 
         AlertDialog.Builder(this)
             .setTitle(R.string.settings)
@@ -377,10 +452,4 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private var startedOnce = false
     }
-}
-
-/** Versão da app sem depender de BuildConfig. */
-object BuildConfigCompat {
-    fun versionName(ctx: android.content.Context): String =
-        runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: "?"
 }

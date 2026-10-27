@@ -6,3 +6,8 @@ local.properties
 *.iml
 .DS_Store
 captures/
+# Chave de assinatura: nunca no repositório (é público)
+keystore/
+keystore.properties
+*.jks
+*.keystore

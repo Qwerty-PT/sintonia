@@ -1,0 +1,96 @@
+name: Release APK (atualização automática)
+
+# Publicar uma versão nova:
+#   1. subir versionCode/versionName em app/build.gradle.kts e fazer commit
+#   2. git tag -a v1.9 -m "O que mudou (aparece na TV ao atualizar)" && git push --follow-tags
+# O Sintonia instalado vê a release nova (update.json) e propõe "Instalar".
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Notas da versão (mensagem da tag)
+        run: |
+          git fetch --force origin "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
+          git tag -l --format='%(contents)' "$GITHUB_REF_NAME" | sed '/^-----BEGIN PGP/,$d' > "$RUNNER_TEMP/notas.txt"
+          cat "$RUNNER_TEMP/notas.txt"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Chave de assinatura (segredos)
+        env:
+          KS_B64: ${{ secrets.SINTONIA_KEYSTORE_BASE64 }}
+          KS_PW: ${{ secrets.SINTONIA_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KS_B64" ] || [ -z "$KS_PW" ]; then
+            echo "::error::Faltam os segredos SINTONIA_KEYSTORE_BASE64 / SINTONIA_KEYSTORE_PASSWORD"; exit 1
+          fi
+          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/sintonia.jks"
+          echo "SINTONIA_KEYSTORE_FILE=$RUNNER_TEMP/sintonia.jks" >> "$GITHUB_ENV"
+          echo "SINTONIA_KEYSTORE_PASSWORD=$KS_PW" >> "$GITHUB_ENV"
+
+      - name: Versão da tag = versão da app
+        run: |
+          NAME=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          CODE=$(grep -oP 'versionCode = \K[0-9]+' app/build.gradle.kts)
+          if [ "v$NAME" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::A tag $GITHUB_REF_NAME não corresponde ao versionName $NAME"; exit 1
+          fi
+          echo "VNAME=$NAME" >> "$GITHUB_ENV"
+          echo "VCODE=$CODE" >> "$GITHUB_ENV"
+
+      - name: Testes
+        run: |
+          ./gradlew testReleaseUnitTest
+          node spec/check-configurador.mjs
+
+      - name: Compilar APK assinado
+        run: ./gradlew assembleRelease
+
+      - name: Verificar assinatura e preparar ficheiros
+        run: |
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          APK="Sintonia-$VNAME.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$APK"
+          "$BT/apksigner" verify --print-certs "$APK" | tee "$RUNNER_TEMP/certs.txt"
+          # mesma chave de sempre (senão as atualizações não instalam por cima)
+          grep -q "5b12b64b9b6189788e2897029dcdada8fe4bd474727cdbbcbc6df666366a76c6" "$RUNNER_TEMP/certs.txt"
+          SHA=$(sha256sum "$APK" | cut -d' ' -f1)
+          python3 - "$APK" "$SHA" <<'PY'
+          import json, os, sys
+          apk, sha = sys.argv[1], sys.argv[2]
+          tag = os.environ["GITHUB_REF_NAME"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          notes = open(os.path.join(os.environ["RUNNER_TEMP"], "notas.txt"), encoding="utf-8").read().strip()
+          json.dump({
+              "versionCode": int(os.environ["VCODE"]),
+              "versionName": os.environ["VNAME"],
+              "apk": f"https://github.com/{repo}/releases/download/{tag}/{apk}",
+              "sha256": sha,
+              "notes": notes,
+          }, open("update.json", "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+          PY
+          cat update.json
+
+      - name: Publicar a release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "Sintonia-$VNAME.apk" update.json \
+            --title "Sintonia $VNAME" --notes-file "$RUNNER_TEMP/notas.txt" --latest

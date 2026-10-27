@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -11,29 +13,43 @@ android {
         applicationId = "pt.nuno.sintonia"
         minSdk = 21          // Fire TV Stick antigos (Fire OS 5) incluídos
         targetSdk = 35
-        versionCode = 9
-        versionName = "1.8"
+        versionCode = 10
+        versionName = "1.9"
     }
 
-    // Chave própria no repositório: o APK compilado aqui, no Android Studio ou no
-    // GitHub Actions tem sempre a mesma assinatura, por isso as atualizações instalam
-    // por cima sem desinstalar. Manter o repositório PRIVADO.
+    // Assinatura: a chave NÃO está no repositório (é público). Vem de:
+    //  - local:  ficheiro keystore.properties na raiz (fora do Git) com storeFile/storePassword/keyAlias/keyPassword
+    //  - GitHub Actions: segredos SINTONIA_KEYSTORE_BASE64 / SINTONIA_KEYSTORE_PASSWORD (ver release.yml)
+    // Tem de ser sempre a mesma chave, senão as atualizações não instalam por cima.
+    val signProps = Properties().apply {
+        val f = rootProject.file("keystore.properties")
+        if (f.exists()) f.inputStream().use { load(it) }
+    }
+    fun signValue(prop: String, env: String): String? =
+        signProps.getProperty(prop)?.takeIf { it.isNotBlank() } ?: System.getenv(env)?.takeIf { it.isNotBlank() }
+    val storePath = signValue("storeFile", "SINTONIA_KEYSTORE_FILE")
+    val hasSigning = storePath != null && file(storePath).exists()
+
     signingConfigs {
-        create("release") {
-            storeFile = file("../keystore/sintonia.jks")
-            storePassword = "sintonia2026"
-            keyAlias = "sintonia"
-            keyPassword = "sintonia2026"
+        if (hasSigning) {
+            create("release") {
+                storeFile = file(storePath!!)
+                storePassword = signValue("storePassword", "SINTONIA_KEYSTORE_PASSWORD")
+                keyAlias = signValue("keyAlias", "SINTONIA_KEY_ALIAS") ?: "sintonia"
+                keyPassword = signValue("keyPassword", "SINTONIA_KEY_PASSWORD")
+                    ?: signValue("storePassword", "SINTONIA_KEYSTORE_PASSWORD")
+            }
         }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("release")
+            // Sem chave: compila na mesma, mas o APK sai sem assinatura (não instala por cima do oficial)
+            if (hasSigning) signingConfig = signingConfigs.getByName("release")
         }
         debug {
-            signingConfig = signingConfigs.getByName("release")
+            if (hasSigning) signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -43,6 +59,9 @@ android {
     }
     kotlinOptions {
         jvmTarget = "17"
+    }
+    buildFeatures {
+        buildConfig = true
     }
     testOptions {
         unitTests.isReturnDefaultValues = true

@@ -32,6 +32,28 @@
     <string name="epg_next">A seguir %1$s · %2$s</string>
     <string name="epg_range">%1$s – %2$s</string>
     <string name="channels">Canais</string>
+    <string name="auto_update">Procurar atualizações automaticamente</string>
+    <string name="check_updates">Procurar atualizações agora</string>
+    <string name="update_title">Nova versão %1$s</string>
+    <string name="update_msg">O Sintonia %1$s já foi descarregado e verificado.
+
+%2$s</string>
+    <string name="update_install">Instalar</string>
+    <string name="update_later">Mais tarde</string>
+    <string name="update_checking">A procurar atualizações…</string>
+    <string name="update_none">Tens a versão mais recente (%1$s)</string>
+    <string name="update_failed">Não foi possível procurar atualizações: %1$s</string>
+    <string name="update_perm_title">Autorizar atualizações</string>
+    <string name="update_perm_msg">Para instalar a atualização, o Android tem de autorizar o Sintonia a instalar apps.
+
+No ecrã seguinte, liga a opção para o Sintonia e volta atrás.</string>
+    <string name="update_perm_firetv">Para instalar a atualização, autoriza o Sintonia a instalar apps:
+
+Definições → A minha Fire TV → Opções de programador → Instalar apps desconhecidas → Sintonia: Ligado
+
+Depois volta ao Sintonia.</string>
+    <string name="update_perm_open">Abrir definições</string>
+    <string name="update_install_failed">O instalador não abriu. O APK está guardado e volto a tentar no próximo arranque.</string>
     <string name="visible_groups">Grupos visíveis</string>
     <string name="visible_groups_btn">Grupos visíveis…</string>
     <string name="group_hidden">Grupo \"%1$s\" escondido — repor em Definições → Grupos visíveis</string>

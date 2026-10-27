@@ -51,19 +51,46 @@ Vem pré-configurado com a lista **M3UPT** (LITUATUI, licença MIT):
 - Pré-visualização automática na lista de canais (desligada = só com OK)
 
 ## Instalar
-- **Google TV / Android TV / Fire TV:** app *Downloader* (código ou URL do APK) ou `adb install -r Sintonia-1.8.apk`.
+- **Google TV / Android TV / Fire TV:** app *Downloader* com o endereço
+  `https://github.com/Qwerty-PT/sintonia/releases/latest/download/Sintonia-1.9.apk` (ou da página
+  Releases), ou `adb install -r Sintonia-1.9.apk`. A partir daí atualiza sozinho.
   Na Fire TV: Definições → A minha Fire TV → Opções de programador → Instalar apps desconhecidas.
 - **Telemóvel:** abrir o APK e permitir "instalar apps desconhecidas".
 
 ## Compilar
 - Android Studio: abrir a pasta, Build → Build APK(s).
 - Linha de comandos: `./gradlew assembleRelease` → `app/build/outputs/apk/release/app-release.apk`
-- GitHub Actions: `.github/workflows/build.yml` compila a cada push na `main` (artefacto `sintonia-apk`).
+- GitHub Actions: `build.yml` testa e compila a cada push na `main` (artefacto `sintonia-apk`);
+  `release.yml` publica a versão quando se cria uma tag `vX.Y` (ver "Atualização automática").
 - Testes: `./gradlew testReleaseUnitTest` (inclui os exemplos de `spec/`) e `node spec/check-configurador.mjs`
   (com a lista real: `M3U_FILE=/caminho/M3UPT.m3u ./gradlew testReleaseUnitTest -i`).
 
-A chave de assinatura está em `keystore/sintonia.jks` (palavra-passe em `app/build.gradle.kts`) para que
-todos os builds tenham a mesma assinatura e as atualizações instalem por cima. **Manter o repositório privado.**
+## Assinatura (o repositório é público — a chave não está nele)
+- A chave `sintonia.jks` e a palavra-passe ficam **fora do Git**. Todas as versões têm de ser assinadas com
+  ela, senão as atualizações não instalam por cima. Guardar cópia num local seguro (ex.: gestor de palavras-passe).
+- Local: ficheiro `keystore.properties` na raiz (ignorado pelo Git):
+  ```
+  storeFile=/caminho/sintonia.jks
+  storePassword=…
+  keyAlias=sintonia
+  keyPassword=…
+  ```
+  Sem ele, o APK compila mas sai sem assinatura.
+- GitHub Actions: segredos do repositório `SINTONIA_KEYSTORE_BASE64` (o .jks em base64) e
+  `SINTONIA_KEYSTORE_PASSWORD`. O workflow de release confirma que a chave é a de sempre
+  (certificado SHA-256 `5b12b64b…6a76c6`).
+
+## Atualização automática (a partir da 1.9)
+- Ao abrir (no máximo de 6 em 6 h), a app lê
+  `https://github.com/Qwerty-PT/sintonia/releases/latest/download/update.json`, descarrega o APK novo em
+  segundo plano, confirma SHA-256, nome do pacote e versão, e mostra **"Nova versão X — Instalar"**.
+  O Android pede sempre 1 OK no instalador; "Mais tarde" volta a perguntar ao fim de 24 h.
+- Na 1.ª atualização, o Android pede para autorizar o Sintonia a instalar apps. Na Fire TV:
+  Definições → A minha Fire TV → Opções de programador → Instalar apps desconhecidas → Sintonia: Ligado.
+- Definições: "Procurar atualizações automaticamente" (ligado) e "Procurar atualizações agora".
+- **Publicar uma versão:** subir `versionCode`/`versionName` em `app/build.gradle.kts`, commit, e
+  `git tag -a v1.10 -m "o que mudou"` + `git push --follow-tags`. O workflow `release.yml` testa, compila,
+  assina, gera o `update.json` e cria a release; a mensagem da tag aparece na TV.
 
 ## Estrutura
 ```
