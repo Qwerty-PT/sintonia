@@ -1,2 +1,1 @@
-Telemóvel: os botões do topo ficam só com o ícone quando não cabem (toque longo mostra o nome).
-Lista sobre o vídeo: o guia mostra o canal que está a tocar (antes ficava no primeiro da lista ao tocar no ecrã).
+Atualizações: corrigido o ciclo "dar permissões" em algumas TVs (ex.: TCL) — depois de autorizar, instala diretamente.

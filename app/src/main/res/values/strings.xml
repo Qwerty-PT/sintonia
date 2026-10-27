@@ -77,4 +77,5 @@ Depois volta ao Sintonia.</string>
     <string name="guide_wait">O guia ainda está a carregar…</string>
     <string name="prev_channel">Canal anterior</string>
     <string name="next_channel">Canal seguinte</string>
+    <string name="update_install_anyway">Já autorizei — instalar</string>
 </resources>

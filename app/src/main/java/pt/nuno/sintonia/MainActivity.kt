@@ -138,7 +138,9 @@ class MainActivity : AppCompatActivity() {
         val ready = Updater.pending
         if (ready != null && installAfterPermission) {
             installAfterPermission = false
-            if (Updater.canInstall(this)) startInstall(ready)
+            // Algumas TVs (ex.: TCL) dizem "autorizado" nas definições mas o sistema continua a responder
+            // que não: tenta instalar na mesma — se faltar mesmo, é o próprio instalador que pede.
+            if (!Updater.install(this, ready)) toast(getString(R.string.update_install_failed))
             return
         }
         if (ready != null) { offerUpdate(ready, userAsked = false); return }
@@ -179,7 +181,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startInstall(ready: Updater.Ready) {
-        if (!Updater.canInstall(this)) {
+        // Só explica a autorização uma vez; depois disso tenta sempre instalar diretamente
+        if (!Updater.canInstall(this) && !prefs.installPermAsked) {
+            prefs.installPermAsked = true
             val fireTv = packageManager.hasSystemFeature("amazon.hardware.fire_tv")
             AlertDialog.Builder(this)
                 .setTitle(R.string.update_perm_title)
@@ -190,6 +194,9 @@ class MainActivity : AppCompatActivity() {
                         // Fire TV sem esse ecrã: abre as definições gerais
                         try { startActivity(Intent(android.provider.Settings.ACTION_SETTINGS)) } catch (_: Exception) {}
                     }
+                }
+                .setNeutralButton(R.string.update_install_anyway) { _, _ ->
+                    if (!Updater.install(this, ready)) toast(getString(R.string.update_install_failed))
                 }
                 .setNegativeButton(R.string.cancel, null)
                 .show()

@@ -78,6 +78,11 @@ class Prefs(context: Context) {
         sp.edit().putLong("zap_last", ms).putLong("zap_avg", avg).putInt("zap_count", zapCount + 1).apply()
     }
 
+    /** Já se explicou a autorização para instalar atualizações (não voltar a prender o utilizador nesse ecrã). */
+    var installPermAsked: Boolean
+        get() = sp.getBoolean("install_perm_asked", false)
+        set(v) = sp.edit().putBoolean("install_perm_asked", v).apply()
+
     /** Verificação de canais: esconder os que estão em baixo (por omissão só ficam marcados). */
     var hideDead: Boolean
         get() = sp.getBoolean("hide_dead", false)
