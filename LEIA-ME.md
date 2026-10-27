@@ -83,7 +83,7 @@ Vem pré-configurado com a lista **M3UPT** (LITUATUI, licença MIT):
   (certificado SHA-256 `5b12b64b…6a76c6`).
 
 ## Atualização automática (a partir da 1.9)
-- Ao abrir (no máximo de 6 em 6 h), a app lê
+- Ao abrir o menu principal ou um canal (no máximo de 15 em 15 min), a app lê
   `https://github.com/Qwerty-PT/sintonia/releases/latest/download/update.json`, descarrega o APK novo em
   segundo plano, confirma SHA-256, nome do pacote e versão, e mostra **"Nova versão X — Instalar"**.
   O Android pede sempre 1 OK no instalador; "Mais tarde" volta a perguntar ao fim de 24 h.

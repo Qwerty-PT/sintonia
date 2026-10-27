@@ -26,7 +26,7 @@ object Updater {
 
     const val REPO = "Qwerty-PT/sintonia"
     const val UPDATE_URL = "https://github.com/$REPO/releases/latest/download/update.json"
-    private const val CHECK_EVERY = 6 * 60 * 60 * 1000L
+    private const val CHECK_EVERY = 15 * 60 * 1000L // é só um ficheiro de ~1 KB
 
     data class Info(
         val versionCode: Int,

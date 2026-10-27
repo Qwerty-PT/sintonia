@@ -1,1 +1,1 @@
-O Sintonia também procura atualizações quando abre direto num canal, e avisa para ir ao menu principal instalar.
+Procura atualizações sempre que abres a app (no máximo de 15 em 15 minutos), em vez de 6 em 6 horas.
