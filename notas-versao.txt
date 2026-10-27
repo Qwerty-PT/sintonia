@@ -1,2 +1,1 @@
-Ao abrir, aparece sempre o menu principal (para ir direto ao último canal, liga a opção nas Definições).
-Botões com nome no topo: Atualizar, Definições e Sair. Voltar duas vezes no menu também sai da app.
+O Sintonia também procura atualizações quando abre direto num canal, e avisa para ir ao menu principal instalar.

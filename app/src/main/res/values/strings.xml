@@ -43,6 +43,7 @@
 
 %2$s</string>
     <string name="update_install">Instalar</string>
+    <string name="update_in_player">Nova versão %1$s pronta a instalar — vai ao menu principal (Voltar)</string>
     <string name="update_later">Mais tarde</string>
     <string name="update_checking">A procurar atualizações…</string>
     <string name="update_none">Tens a versão mais recente (%1$s)</string>

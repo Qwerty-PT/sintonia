@@ -151,6 +151,7 @@ class PlayerActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         if (Session.list.isEmpty()) return
+        checkUpdateQuietly()
         player = ExoPlayer.Builder(this).build().also {
             it.setAudioAttributes(
                 AudioAttributes.Builder()
@@ -260,6 +261,28 @@ class PlayerActivity : AppCompatActivity() {
                 ovChannelAdapter.notifyItemRangeChanged(0, ovChannelAdapter.itemCount, ChannelAdapter.PAYLOAD_EPG)
             }
         }
+    }
+
+    /**
+     * Atualizações também quando a app abre direto num canal: descarrega em segundo plano e avisa
+     * sem interromper ("Voltar para o menu para instalar"); o pedido de instalação aparece no menu.
+     */
+    private fun checkUpdateQuietly() {
+        val ready = Updater.pending
+        if (ready != null) { notifyUpdate(ready); return }
+        if (!Updater.shouldCheck(this)) return
+        lifecycleScope.launch {
+            val r = Updater.check(this@PlayerActivity)
+            if (r is Updater.Result.Available) notifyUpdate(r.ready)
+        }
+    }
+
+    private var updateNotified = 0
+
+    private fun notifyUpdate(ready: Updater.Ready) {
+        if (updateNotified == ready.info.versionCode || isFinishing) return
+        updateNotified = ready.info.versionCode
+        Toast.makeText(this, getString(R.string.update_in_player, ready.info.versionName), Toast.LENGTH_LONG).show()
     }
 
     // ---------- Lista de canais sobre o vídeo ----------
