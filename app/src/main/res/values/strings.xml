@@ -32,6 +32,14 @@
     <string name="epg_next">A seguir %1$s · %2$s</string>
     <string name="epg_range">%1$s – %2$s</string>
     <string name="channels">Canais</string>
+    <string name="check_dead">✕ não está a funcionar</string>
+    <string name="check_blocked">⚠ bloqueado (talvez só com IP de outro país)</string>
+    <string name="check_running">a verificar canais %1$d/%2$d</string>
+    <string name="check_now">Verificar canais agora</string>
+    <string name="check_started">A verificar todos os canais visíveis…</string>
+    <string name="hide_dead">Esconder canais que não estão a funcionar (▲▼ salta-os sempre)</string>
+    <string name="zap_stats">Mudar de canal: último %1$.1f s · média %2$.1f s (%3$d vezes)</string>
+    <string name="zap_stats_none">Mudar de canal: ainda sem medições</string>
     <string name="btn_reload">Atualizar</string>
     <string name="btn_exit">Sair</string>
     <string name="press_back_again">Carrega outra vez em Voltar para sair</string>

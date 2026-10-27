@@ -24,11 +24,13 @@ object Catalog {
         return names.toList()
     }
 
-    fun channelsFor(ctx: Context, group: String): List<Channel> =
-        if (group == favLabel(ctx)) {
+    fun channelsFor(ctx: Context, group: String): List<Channel> {
+        val list = if (group == favLabel(ctx)) {
             val favs = Prefs(ctx).favourites
             PlaylistRepo.channels.filter { it.key in favs }
         } else PlaylistRepo.channels.filter { it.group == group }
+        return if (Prefs(ctx).hideDead) list.filterNot { ChannelCheck.isDead(it) } else list
+    }
 
     /** Liga/desliga favorito; devolve true se ficou favorito. */
     fun toggleFavourite(ctx: Context, ch: Channel): Boolean {

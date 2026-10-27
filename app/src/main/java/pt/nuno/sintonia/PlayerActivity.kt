@@ -36,6 +36,7 @@ import androidx.media3.common.C
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -152,7 +153,13 @@ class PlayerActivity : AppCompatActivity() {
         super.onStart()
         if (Session.list.isEmpty()) return
         checkUpdateQuietly()
-        player = ExoPlayer.Builder(this).build().also {
+        // Arranque rápido: começa a tocar com 1 s de vídeo em vez dos 2,5 s de origem
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(15_000, 40_000, 1_000, 3_000)
+            .setPrioritizeTimeOverSizeThresholds(true)
+            .build()
+        ChannelCheck.stop() // a verificação de canais não compete com o vídeo pela rede
+        player = ExoPlayer.Builder(this).setLoadControl(loadControl).build().also {
             it.setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(C.USAGE_MEDIA)
@@ -184,8 +191,14 @@ class PlayerActivity : AppCompatActivity() {
 
     // ---------- Reprodução ----------
 
+    /** Momento em que se pediu o canal (para medir o tempo até à imagem). */
+    private var zapStartedAt = 0L
+    private var zapMeasured = true
+
     private fun playCurrent() {
         val ch = current ?: return
+        zapStartedAt = android.os.SystemClock.elapsedRealtime()
+        zapMeasured = false
         retries = 0
         cancelRetry()
         message.visibility = View.GONE
@@ -213,10 +226,31 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    private fun recordZap() {
+        if (zapMeasured) return
+        zapMeasured = true
+        val ms = android.os.SystemClock.elapsedRealtime() - zapStartedAt
+        if (ms in 1..60_000) prefs.recordZap(ms)
+    }
+
+    /** Pré-aquece os canais acima e abaixo (DNS + ligação + índice do stream). */
+    private fun warmNeighbours() {
+        val list = Session.list
+        if (list.size < 2) return
+        val n = list.size
+        ChannelCheck.warm(listOf(list[(Session.index + 1) % n], list[(Session.index - 1 + n) % n]))
+    }
+
     private fun zap(delta: Int) {
         val n = Session.list.size
         if (n == 0) return
-        Session.index = ((Session.index + delta) % n + n) % n
+        var i = Session.index
+        // salta os canais que a verificação marcou como em baixo (no máximo uma volta)
+        for (step in 1..n) {
+            i = ((i + delta) % n + n) % n
+            if (!ChannelCheck.isDead(Session.list[i]) || step == n) break
+        }
+        Session.index = i
         playCurrent()
     }
 
@@ -225,8 +259,15 @@ class PlayerActivity : AppCompatActivity() {
             if (state == Player.STATE_READY) {
                 retries = 0
                 message.visibility = View.GONE
+                current?.let { ch ->
+                    ChannelCheck.markOk(this@PlayerActivity, ch)
+                    if (ch.isRadio) recordZap() // rádio não tem imagem
+                    warmNeighbours()
+                }
             }
         }
+
+        override fun onRenderedFirstFrame() = recordZap()
 
         override fun onPlayerError(error: PlaybackException) {
             val p = player ?: return
@@ -242,6 +283,7 @@ class PlayerActivity : AppCompatActivity() {
                 handler.postDelayed(r, 2000L * retries)
             } else {
                 showMessage(getString(R.string.cannot_open, error.errorCodeName))
+                ChannelCheck.markFailed(this@PlayerActivity, ch, error.errorCodeName)
             }
         }
     }
@@ -319,6 +361,8 @@ class PlayerActivity : AppCompatActivity() {
         )
         ovChannelsRv.layoutManager = LinearLayoutManager(this)
         ovChannelsRv.adapter = ovChannelAdapter
+        ovChannelsRv.setHasFixedSize(true)
+        ovChannelsRv.itemAnimator = null
 
         // Janela do vídeo: OK/toque → ecrã inteiro; ◀ volta ao canal focado na lista
         videoSlot.setOnClickListener { closeChannels() }

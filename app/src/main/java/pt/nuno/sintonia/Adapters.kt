@@ -140,14 +140,22 @@ class ChannelAdapter(
     }
 
     private fun bindSub(h: VH, ch: Channel) {
+        val ctx = h.itemView.context
+        val st = ChannelCheck.status(ch)
         val now = EpgRepo.nowAndNext(ch).first
         val parts = buildList {
             if (showGroup) add(ch.group)
-            if (now != null) add("▶ ${now.title}")
-            else if (ch.isRadio && !showGroup) add(h.itemView.context.getString(R.string.radio))
+            when (st?.state) {
+                ChannelCheck.State.DEAD -> add(ctx.getString(R.string.check_dead))
+                ChannelCheck.State.BLOCKED -> add(ctx.getString(R.string.check_blocked))
+                else -> if (now != null) add("▶ ${now.title}")
+                    else if (ch.isRadio && !showGroup) add(ctx.getString(R.string.radio))
+            }
         }
         h.sub.text = parts.joinToString(" · ")
         h.sub.visibility = if (parts.isEmpty()) View.GONE else View.VISIBLE
+        // canais em baixo ficam esbatidos (continuam a poder ser abertos)
+        h.itemView.alpha = if (st?.state == ChannelCheck.State.DEAD) 0.45f else 1f
     }
 
     override fun onBindViewHolder(h: VH, position: Int) {

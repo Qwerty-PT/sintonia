@@ -1,0 +1,49 @@
+name: Guia (EPG) pré-processado
+
+# De 6 em 6 horas prepara o guia da M3UPT num ficheiro pequeno (~200 KB) e publica-o no ramo "dados":
+#   https://raw.githubusercontent.com/Qwerty-PT/sintonia/dados/guia-m3upt.tsv.gz
+# O Sintonia usa este ficheiro em vez de descarregar e ler o XMLTV completo (muito mais rápido na TV).
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["ferramentas/guia.mjs", "desktop/src/core/**", ".github/workflows/guia.yml"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: guia
+  cancel-in-progress: true
+
+jobs:
+  guia:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: desktop/package-lock.json }
+
+      - name: Dependências (só as do leitor, sem Electron)
+        run: npm ci --omit=dev --ignore-scripts
+        working-directory: desktop
+
+      - name: Gerar o guia
+        run: |
+          mkdir -p out
+          node ferramentas/guia.mjs https://raw.githubusercontent.com/LITUATUI/M3UPT/main/M3U/M3UPT.m3u out/guia-m3upt.tsv.gz
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > out/gerado-em.txt
+
+      - name: Publicar no ramo "dados" (um só commit, substituído de cada vez)
+        run: |
+          cd out
+          git init -q -b dados
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Guia gerado em $(cat gerado-em.txt)"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" dados

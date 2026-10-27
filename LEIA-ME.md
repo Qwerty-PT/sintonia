@@ -18,7 +18,9 @@ Vem pré-configurado com a lista **M3UPT** (LITUATUI, licença MIT):
 - Religa sozinho até 3 vezes se o stream cair; volta ao direto se ficar para trás
 - Lista guardada em cache (abre sem rede) e atualizada ao abrir / a cada 2 h (URLs da TVI expiram)
 - **Guia (EPG):** usa o `url-tvg` da lista (M3UPT: ~95 canais com programação), .xml/.gz/.xz;
-  transferido em segundo plano, só os canais da lista, janela de 48 h, cache e atualização a cada 12 h.
+  transferido em segundo plano, só os canais da lista, janela de 48 h, cache e atualização a cada 6 h.
+  Com a lista M3UPT usa um guia já preparado (~200 KB, `ferramentas/guia.mjs` + `guia.yml`, ramo `dados`,
+  gerado de 6 em 6 h) em vez de ler o XMLTV completo na TV; se falhar, lê o XMLTV como antes.
   Aparece na lista ("▶ programa atual" + painel à direita com o guia do canal focado) e no leitor
   só ao carregar OK (agora, horário + progresso, descrição, a seguir).
 - **Lista de canais sobre o vídeo:** ◀ ou botão "Canais" no menu do OK — o vídeo continua a tocar
@@ -26,6 +28,13 @@ Vem pré-configurado com a lista **M3UPT** (LITUATUI, licença MIT):
   (pré-visualização); OK outra vez no mesmo canal, ▶ + OK na janela, ou Voltar → ecrã inteiro.
   Opção nas Definições: pré-visualização automática ao percorrer a lista (após 0,7 s).
   Estado no topo: "guia a carregar… / guia: N canais"
+- **Verificação de canais (1.13):** em segundo plano, na própria TV (IP real), lê só o índice de cada
+  stream (KB, nunca vídeo) — 4 de cada vez, favoritos e grupo aberto primeiro, pára quando se começa a ver.
+  "✕ não está a funcionar" (esbatido) ou "⚠ bloqueado" (403/204, normalmente geográfico). Bons valem 12 h,
+  falhas são revistas ao fim de 1 h; o que o leitor confirma ao tocar/falhar prevalece. ▲▼ salta os mortos.
+  Teste com a lista real: `CHECK_M3U=lista.m3u gradle testReleaseUnitTest -i`.
+- **Rapidez:** arranque com 1 s de buffer, ligação/DNS dos canais vizinhos pré-aquecidos, listas mais leves;
+  Definições mostram quanto demora a mudar de canal (último e média).
 - Ao mudar de canal só aparece o nome e o número, pequeno, durante 3 s
 - Telemóvel: deslizar da margem esquerda abre a lista; deslizar ▲▼ ou botões para mudar de canal, Picture-in-Picture (Android 8+)
 
@@ -51,6 +60,7 @@ Vem pré-configurado com a lista **M3UPT** (LITUATUI, licença MIT):
 - Grupos visíveis… (desmarcar os que não interessam, ex.: "Teste")
 - Ao abrir, ir diretamente para o último canal (desligado = abre o menu principal)
 - Pré-visualização automática na lista de canais (desligada = só com OK)
+- Esconder canais que não estão a funcionar (desligado = só ficam marcados) · "Verificar canais agora"
 
 ## Instalar
 - **Google TV / Android TV / Fire TV:** app *Downloader* com o endereço

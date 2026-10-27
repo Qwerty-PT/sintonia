@@ -13,8 +13,8 @@ android {
         applicationId = "pt.nuno.sintonia"
         minSdk = 21          // Fire TV Stick antigos (Fire OS 5) incluídos
         targetSdk = 35
-        versionCode = 13
-        versionName = "1.12"
+        versionCode = 14
+        versionName = "1.13"
     }
 
     // Assinatura: a chave NÃO está no repositório (é público). Vem de:

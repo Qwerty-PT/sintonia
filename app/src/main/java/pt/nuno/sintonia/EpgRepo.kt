@@ -30,7 +30,7 @@ object EpgRepo {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var job: Job? = null
 
-    private const val MAX_AGE = 12 * 60 * 60 * 1000L
+    private const val MAX_AGE = 6 * 60 * 60 * 1000L // o guia preparado é refeito de 6 em 6 h
     private const val KEEP_BEFORE = 2 * 60 * 60 * 1000L
     private const val KEEP_AFTER = 48 * 60 * 60 * 1000L
 
@@ -79,6 +79,16 @@ object EpgRepo {
             if (fresh) { _state.value = State.READY; return@launch }
 
             _state.value = State.LOADING
+
+            // 1.º: guia já preparado no GitHub (~200 KB, sem ler XML na TV) — só para a lista M3UPT
+            if (prefs.epgUrl.isBlank() && prefs.playlistUrl == Prefs.DEFAULT_URL && loadPrebuilt(app, key)) {
+                prefs.epgSource = key
+                prefs.epgUpdate = System.currentTimeMillis()
+                _state.value = if (data.isEmpty()) State.EMPTY else State.READY
+                _version.value++
+                return@launch
+            }
+
             val now = System.currentTimeMillis()
             val ids = channels.mapNotNull { it.tvgId }.toSet()
             val names = channels.map { it.name.lowercase() }.toSet()
@@ -140,30 +150,60 @@ object EpgRepo {
     private fun loadCache(ctx: Context) {
         val f = cacheFile(ctx)
         if (!f.exists()) return
-        val now = System.currentTimeMillis()
-        val progs = HashMap<String, MutableList<Programme>>()
-        val n2i = HashMap<String, String>()
-        runCatching {
-            f.bufferedReader().useLines { lines ->
-                lines.forEach { line ->
-                    val p = line.split('\t')
-                    when {
-                        p[0] == "N" && p.size >= 3 -> n2i[p[1]] = p[2]
-                        p[0] == "P" && p.size >= 5 -> {
-                            val stop = p[3].toLongOrNull() ?: return@forEach
-                            if (stop < now) return@forEach
-                            progs.getOrPut(p[1]) { ArrayList() } +=
-                                Programme(p[2].toLongOrNull() ?: 0, stop, p[4], p.getOrNull(5)?.ifEmpty { null })
-                        }
-                    }
-                }
-            }
-        }
-        if (progs.isNotEmpty()) {
-            data = progs
-            nameToId = n2i
+        val r = runCatching { f.bufferedReader().useLines { parseTsv(it, System.currentTimeMillis()) } }.getOrNull() ?: return
+        if (r.programmes.isNotEmpty()) {
+            data = r.programmes
+            nameToId = r.nameToId
             _state.value = State.READY
             _version.value++
         }
+    }
+
+    /** Guia preparado pelo GitHub Actions (guia.yml): o mesmo formato TSV da cache, em gzip. */
+    private fun loadPrebuilt(ctx: Context, sourceKey: String): Boolean = try {
+        val r = Http.decompress(Http.open(PREBUILT_URL, 30_000)).bufferedReader().useLines {
+            parseTsv(it, System.currentTimeMillis())
+        }
+        if (r.source != null && r.source != sourceKey) {
+            Log.w("Sintonia", "guia preparado é de outra fonte (${r.source})"); false
+        } else if (r.programmes.isEmpty()) false
+        else {
+            data = r.programmes
+            nameToId = r.nameToId
+            saveCache(ctx)
+            true
+        }
+    } catch (e: Exception) {
+        Log.w("Sintonia", "guia preparado indisponível, a usar o XMLTV", e); false
+    }
+
+    const val PREBUILT_URL = "https://raw.githubusercontent.com/${Updater.REPO}/dados/guia-m3upt.tsv.gz"
+
+    class TsvGuide(
+        val programmes: Map<String, List<Programme>>,
+        val nameToId: Map<String, String>,
+        val source: String?,
+    )
+
+    /** Lê o formato TSV (S/N/P); ignora programas já terminados. */
+    fun parseTsv(lines: Sequence<String>, now: Long): TsvGuide {
+        val progs = HashMap<String, MutableList<Programme>>()
+        val n2i = HashMap<String, String>()
+        var source: String? = null
+        lines.forEach { line ->
+            val p = line.split('\t')
+            when {
+                p[0] == "S" && p.size >= 2 -> source = p[1]
+                p[0] == "N" && p.size >= 3 -> n2i[p[1]] = p[2]
+                p[0] == "P" && p.size >= 5 -> {
+                    val stop = p[3].toLongOrNull() ?: return@forEach
+                    if (stop < now) return@forEach
+                    progs.getOrPut(p[1]) { ArrayList() } +=
+                        Programme(p[2].toLongOrNull() ?: 0, stop, p[4], p.getOrNull(5)?.ifEmpty { null })
+                }
+            }
+        }
+        progs.values.forEach { l -> l.sortBy { it.start } }
+        return TsvGuide(progs, n2i, source)
     }
 }

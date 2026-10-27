@@ -75,6 +75,9 @@ class MainActivity : AppCompatActivity() {
         guide = findViewById<View>(R.id.guidePanel)?.let { GuidePanel(it) }
         channelsRv.layoutManager = LinearLayoutManager(this)
         channelsRv.adapter = channelAdapter
+        channelsRv.setHasFixedSize(true)
+        channelsRv.setItemViewCacheSize(16)
+        channelsRv.itemAnimator = null // sem animações ao atualizar linhas (mais leve na TV)
 
         findViewById<View>(R.id.btnReload).setOnClickListener { refresh(userAsked = true) }
         findViewById<View>(R.id.btnSettings).setOnClickListener { openSettings() }
@@ -96,6 +99,8 @@ class MainActivity : AppCompatActivity() {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch { EpgRepo.version.collect { refreshEpgRows() } }
                 launch { EpgRepo.state.collect { updateStatus() } }
+                launch { ChannelCheck.progress.collect { updateStatus() } }
+                launch { ChannelCheck.version.collect { refreshEpgRows() } }
                 launch { while (true) { delay(60_000); refreshEpgRows() } }
             }
         }
@@ -119,6 +124,7 @@ class MainActivity : AppCompatActivity() {
         // As listas com URLs temporários (ex.: TVI) envelhecem — atualiza em segundo plano
         if (PlaylistRepo.channels.isNotEmpty() && isStale()) refresh(userAsked = false)
         resumeUpdate()
+        startCheck()
     }
 
     // ---------- Atualização automática (GitHub Releases) ----------
@@ -246,6 +252,7 @@ class MainActivity : AppCompatActivity() {
     private fun applyChannels() {
         val all = PlaylistRepo.channels
         startEpg()
+        ChannelCheck.load(this)
         byGroup = all.groupBy { it.group } // mantém a ordem da lista
         val favs = prefs.favourites
         channelAdapter.favourites = favs
@@ -271,6 +278,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         focusLastChannel()
+        startCheck()
     }
 
     private fun buildGroups(favs: Set<String>): List<String> {
@@ -281,10 +289,24 @@ class MainActivity : AppCompatActivity() {
 
     private fun channelsFor(pos: Int): List<Channel> {
         val g = groups.getOrNull(pos) ?: return emptyList()
-        return if (g == favLabel) {
+        val list = if (g == favLabel) {
             val favs = prefs.favourites
             PlaylistRepo.channels.filter { it.key in favs }
         } else byGroup[g].orEmpty()
+        return if (prefs.hideDead) list.filterNot { ChannelCheck.isDead(it) } else list
+    }
+
+    // ---------- Verificação de canais ----------
+
+    /** Favoritos e grupo aberto primeiro; depois os restantes grupos visíveis (escondidos não). */
+    private fun startCheck(force: Boolean = false) {
+        if (PlaylistRepo.channels.isEmpty()) return
+        val hidden = prefs.hiddenGroups
+        val favs = prefs.favourites
+        val visible = PlaylistRepo.channels.filter { it.group !in hidden }
+        val open = groups.getOrNull(groupAdapter.selected)?.let { g -> visible.filter { it.group == g } }.orEmpty()
+        val ordered = visible.filter { it.key in favs } + open + visible
+        ChannelCheck.start(this, ordered, force)
     }
 
     private fun showGroup(pos: Int) {
@@ -292,6 +314,7 @@ class MainActivity : AppCompatActivity() {
         groupAdapter.select(pos, groupsRv)
         prefs.lastGroup = groups[pos]
         val items = channelsFor(pos)
+        ChannelCheck.warmDns(items)
         channelAdapter.submit(items, withGroup = groups[pos] == favLabel)
         channelsRv.scrollToPosition(0)
         // Sem foco (toque/arranque): mostra o último canal visto ou o primeiro do grupo
@@ -312,7 +335,10 @@ class MainActivity : AppCompatActivity() {
             EpgRepo.State.EMPTY -> getString(R.string.guide_none)
             EpgRepo.State.IDLE -> null
         }
-        status.text = if (guide != null) "$base · $guide" else base
+        val check = ChannelCheck.progress.value.let {
+            if (it.running) getString(R.string.check_running, it.done, it.total) else null
+        }
+        status.text = listOfNotNull(base, guide, check).joinToString(" · ")
     }
 
     // ---------- Foco (comando da TV) ----------
@@ -407,6 +433,15 @@ class MainActivity : AppCompatActivity() {
         epg.setText(prefs.epgUrl)
         auto.isChecked = prefs.autoplayLast
         v.findViewById<TextView>(R.id.version).text = getString(R.string.version_fmt, BuildConfig.VERSION_NAME)
+        val hideDead = v.findViewById<CheckBox>(R.id.hideDead)
+        hideDead.isChecked = prefs.hideDead
+        hideDead.setOnCheckedChangeListener { _, on -> prefs.hideDead = on; applyChannels() }
+        v.findViewById<View>(R.id.btnCheckChannels).setOnClickListener {
+            startCheck(force = true); toast(getString(R.string.check_started))
+        }
+        v.findViewById<TextView>(R.id.zapStats).text = if (prefs.zapCount > 0)
+            getString(R.string.zap_stats, prefs.zapLastMs / 1000.0, prefs.zapAvgMs / 1000.0, prefs.zapCount)
+        else getString(R.string.zap_stats_none)
         val autoUpdate = v.findViewById<CheckBox>(R.id.autoUpdate)
         autoUpdate.isChecked = prefs.autoUpdate
         autoUpdate.setOnCheckedChangeListener { _, on -> prefs.autoUpdate = on }

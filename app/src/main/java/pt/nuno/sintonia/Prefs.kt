@@ -67,6 +67,22 @@ class Prefs(context: Context) {
         get() = sp.getLong("update_snoozed_at", 0L)
         set(v) = sp.edit().putLong("update_snoozed_at", v).apply()
 
+    /** Tempo até à imagem ao mudar de canal: último e média (para comparar melhorias). */
+    val zapLastMs: Long get() = sp.getLong("zap_last", 0L)
+    val zapAvgMs: Long get() = sp.getLong("zap_avg", 0L)
+    val zapCount: Int get() = sp.getInt("zap_count", 0)
+
+    fun recordZap(ms: Long) {
+        val n = minOf(zapCount, 49) // média das últimas ~50
+        val avg = if (n == 0) ms else (zapAvgMs * n + ms) / (n + 1)
+        sp.edit().putLong("zap_last", ms).putLong("zap_avg", avg).putInt("zap_count", zapCount + 1).apply()
+    }
+
+    /** Verificação de canais: esconder os que estão em baixo (por omissão só ficam marcados). */
+    var hideDead: Boolean
+        get() = sp.getBoolean("hide_dead", false)
+        set(v) = sp.edit().putBoolean("hide_dead", v).apply()
+
     var favourites: Set<String>
         get() = sp.getStringSet("fav", emptySet())!!.toSet()
         set(v) = sp.edit().putStringSet("fav", HashSet(v)).apply()
