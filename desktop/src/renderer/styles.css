@@ -144,3 +144,13 @@ dialog button.primary { background: var(--accent); border-color: var(--accent); 
 .item.dead { opacity: 0.45; }
 .item.dead:focus { opacity: 1; }
 .ch-sub.warn { color: var(--warn); }
+
+/* ---------- Janela flutuante (PiP) ---------- */
+body.mini #player { cursor: default; }
+body.mini #info, body.mini #controls, body.mini #overlay, body.mini .toast { display: none !important; }
+body.mini #radioLogo { width: 40%; height: 40%; }
+body.mini .message { font-size: 13px; padding: 10px; max-width: 90%; }
+#miniBar { position: absolute; left: 0; right: 0; top: 0; display: flex; gap: 4px; padding: 6px; background: linear-gradient(rgba(0,0,0,.75), transparent); opacity: 0; transition: opacity .15s; z-index: 5; }
+body.mini #player:hover #miniBar, body.mini #miniBar:focus-within { opacity: 1; }
+#miniBar button { border: 0; border-radius: 8px; background: rgba(255,255,255,.14); color: #fff; width: 34px; height: 30px; cursor: pointer; font-size: 14px; }
+#miniBar button:hover, #miniBar button:focus-visible { background: var(--accent); outline: none; }

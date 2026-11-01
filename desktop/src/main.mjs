@@ -4,7 +4,7 @@
 //   desliga o CORS só para esses pedidos: é o que o browser não deixa fazer e a app Android faz.
 // - Descarrega a lista e o guia (gz/xz, dezenas de MB) fora do ecrã, e guarda cache em disco.
 
-import { app, BrowserWindow, ipcMain, protocol, session, shell } from "electron";
+import { app, BrowserWindow, ipcMain, protocol, screen, session, shell } from "electron";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs/promises";
@@ -221,6 +221,36 @@ async function checkUpdate() {
   return { available: newerVersion(rel.version, app.getVersion()), current: app.getVersion(), ...rel };
 }
 
+// ---------- Janela flutuante (PiP): pequena, 16:9, sempre por cima das outras apps ----------
+const mini = new WeakMap(); // janela → estado anterior { bounds, maximized, fullscreen }
+
+function setMini(win, on) {
+  if (!win) return false;
+  if (on && !mini.has(win)) {
+    mini.set(win, { bounds: win.getNormalBounds(), maximized: win.isMaximized(), fullscreen: win.isFullScreen() });
+    if (win.isFullScreen()) win.setFullScreen(false);
+    if (win.isMaximized()) win.unmaximize();
+    const wa = screen.getDisplayMatching(win.getBounds()).workArea;
+    const w = Math.round(Math.min(560, wa.width / 3)), h = Math.round((w * 9) / 16);
+    win.setMinimumSize(256, 144);
+    win.setBounds({ x: wa.x + wa.width - w - 24, y: wa.y + wa.height - h - 24, width: w, height: h });
+    win.setAspectRatio(16 / 9);
+    win.setAlwaysOnTop(true, "floating");
+    win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  } else if (!on && mini.has(win)) {
+    const prev = mini.get(win);
+    mini.delete(win);
+    win.setAlwaysOnTop(false);
+    win.setVisibleOnAllWorkspaces(false);
+    win.setAspectRatio(0);
+    win.setMinimumSize(900, 560);
+    win.setBounds(prev.bounds);
+    if (prev.maximized) win.maximize();
+    if (prev.fullscreen) win.setFullScreen(true);
+  }
+  return mini.has(win);
+}
+
 // ---------- IPC ----------
 function setupIpc() {
   ipcMain.handle("fetch-text", async (_e, url) => {
@@ -255,6 +285,7 @@ function setupIpc() {
   ipcMain.handle("check-update", () => checkUpdate());
   ipcMain.handle("open-external", (_e, url) => { if (/^https:\/\/github\.com\//.test(url)) shell.openExternal(url); return true; });
   ipcMain.handle("quit", () => app.quit());
+  ipcMain.handle("mini", (e, on) => setMini(BrowserWindow.fromWebContents(e.sender), !!on));
 }
 
 // ---------- Janela ----------

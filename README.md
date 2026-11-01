@@ -26,6 +26,7 @@ O APK atualiza-se sozinho (propõe a versão nova ao abrir). A versão de comput
 
 - Grupos, favoritos, grupos escondidos, guia de programação (EPG) com o programa atual e seguintes
 - Lista de canais sobre o vídeo, com pré-visualização numa janela
+- Janela flutuante (picture-in-picture) por cima das outras apps, no telemóvel e no computador
 - Verificação automática de canais: marca os que não estão a funcionar ou estão bloqueados no país
 - HLS, DASH e DRM ClearKey; cabeçalhos por canal (User-Agent, Referer, Origin)
 

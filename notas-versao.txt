@@ -1,1 +1,2 @@
-Ícone novo, em coral e laranja.
+Janela flutuante (telemóvel/tablet): botão no menu do OK, entra sozinha ao sair da app com vídeo a tocar, e tem botões de canal anterior, pausa e canal seguinte.
+Ícone: desenho ajustado para não ficar cortado.

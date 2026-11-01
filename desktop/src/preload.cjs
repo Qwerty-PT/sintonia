@@ -15,4 +15,5 @@ contextBridge.exposeInMainWorld("sintonia", {
   checkUpdate: () => ipcRenderer.invoke("check-update"),
   openExternal: (url) => ipcRenderer.invoke("open-external", url),
   quit: () => ipcRenderer.invoke("quit"),
+  mini: (on) => ipcRenderer.invoke("mini", on),
 });

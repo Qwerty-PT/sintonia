@@ -66,6 +66,13 @@
           android:contentDescription="@string/channels"
           android:src="@drawable/ic_list"/>
 
+      <!-- Sintonia: janela flutuante (Picture-in-Picture), só no telemóvel/tablet -->
+      <ImageButton android:id="@+id/btnPip"
+          style="@style/ExoStyledControls.Button.Bottom"
+          android:contentDescription="@string/pip"
+          android:visibility="gone"
+          android:src="@drawable/ic_pip"/>
+
       <ImageButton android:id="@id/exo_vr"
           style="@style/ExoStyledControls.Button.Bottom.VR"/>
 

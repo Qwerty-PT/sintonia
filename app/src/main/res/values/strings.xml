@@ -78,4 +78,9 @@ Depois volta ao Sintonia.</string>
     <string name="prev_channel">Canal anterior</string>
     <string name="next_channel">Canal seguinte</string>
     <string name="update_install_anyway">Já autorizei — instalar</string>
+    <string name="pip">Janela flutuante</string>
+    <string name="pip_prev">Canal anterior</string>
+    <string name="pip_next">Canal seguinte</string>
+    <string name="pip_play">Continuar</string>
+    <string name="pip_pause">Pausa</string>
 </resources>

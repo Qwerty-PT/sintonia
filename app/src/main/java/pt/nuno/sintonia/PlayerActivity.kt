@@ -2,7 +2,14 @@
 
 package pt.nuno.sintonia
 
+import android.app.PendingIntent
 import android.app.PictureInPictureParams
+import android.app.RemoteAction
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.graphics.drawable.Icon
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
@@ -181,6 +188,20 @@ class PlayerActivity : AppCompatActivity() {
         if (player != null) playCurrent()
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (pipSupported() && !pipReceiverOn) {
+            ContextCompat.registerReceiver(this, pipReceiver, IntentFilter(PIP_ACTION), ContextCompat.RECEIVER_NOT_EXPORTED)
+            pipReceiverOn = true
+        }
+        updatePipParams()
+    }
+
+    override fun onDestroy() {
+        if (pipReceiverOn) { runCatching { unregisterReceiver(pipReceiver) }; pipReceiverOn = false }
+        super.onDestroy()
+    }
+
     override fun onStop() {
         super.onStop()
         cancelRetry()
@@ -213,6 +234,7 @@ class PlayerActivity : AppCompatActivity() {
             radioLogo.visibility = View.GONE
         }
         start(ch)
+        updatePipParams()
     }
 
     private fun start(ch: Channel) {
@@ -255,6 +277,8 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private val listener = object : Player.Listener {
+        override fun onIsPlayingChanged(isPlaying: Boolean) = updatePipParams()
+
         override fun onPlaybackStateChanged(state: Int) {
             if (state == Player.STATE_READY) {
                 retries = 0
@@ -374,6 +398,11 @@ class PlayerActivity : AppCompatActivity() {
 
         // Botão "Canais" no menu do OK (layout do controlador personalizado)
         playerView.findViewById<View>(R.id.btnChannels)?.setOnClickListener { openChannels() }
+        // Botão "Janela flutuante" (PiP) — telemóvel/tablet com suporte
+        playerView.findViewById<View>(R.id.btnPip)?.apply {
+            visibility = if (pipSupported()) View.VISIBLE else View.GONE
+            setOnClickListener { enterPip() }
+        }
     }
 
     /** Abre a lista sobre o vídeo; devolve false se não for possível. */
@@ -640,30 +669,86 @@ class PlayerActivity : AppCompatActivity() {
         return super.dispatchTouchEvent(ev)
     }
 
-    // ---------- Picture-in-Picture (telemóvel) ----------
+    // ---------- Picture-in-Picture (janela flutuante, telemóvel/tablet) ----------
+
+    private var pipReceiverOn = false
+
+    /** Botões da janela flutuante: canal anterior · pausa/continuar · canal seguinte. */
+    private val pipReceiver = object : BroadcastReceiver() {
+        override fun onReceive(c: Context, i: Intent) {
+            when (i.getIntExtra(PIP_EXTRA, 0)) {
+                PIP_PREV -> zap(-1)
+                PIP_NEXT -> zap(+1)
+                PIP_TOGGLE -> player?.let { if (it.isPlaying) it.pause() else it.play() }
+            }
+            updatePipParams()
+        }
+    }
+
+    private fun pipSupported(): Boolean =
+        !isTv && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
+
+    private fun pipAction(code: Int, icon: Int, title: Int): RemoteAction {
+        val pi = PendingIntent.getBroadcast(
+            this, code, Intent(PIP_ACTION).setPackage(packageName).putExtra(PIP_EXTRA, code),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        return RemoteAction(Icon.createWithResource(this, icon), getString(title), getString(title), pi)
+    }
+
+    private fun pipParams(): PictureInPictureParams? {
+        if (!pipSupported()) return null
+        val playing = player?.isPlaying == true
+        val b = PictureInPictureParams.Builder()
+            .setAspectRatio(Rational(16, 9))
+            .setActions(listOf(
+                pipAction(PIP_PREV, R.drawable.ic_pip_prev, R.string.pip_prev),
+                if (playing) pipAction(PIP_TOGGLE, R.drawable.ic_pip_pause, R.string.pip_pause)
+                else pipAction(PIP_TOGGLE, R.drawable.ic_pip_play, R.string.pip_play),
+                pipAction(PIP_NEXT, R.drawable.ic_pip_next, R.string.pip_next),
+            ))
+        // Android 12+: entra sozinho na janela ao sair da app (gesto ou Home), com animação suave
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            b.setAutoEnterEnabled(playing && current?.isRadio != true)
+            b.setSeamlessResizeEnabled(true)
+        }
+        return b.build()
+    }
+
+    private fun updatePipParams() {
+        val p = pipParams() ?: return
+        runCatching { setPictureInPictureParams(p) }
+    }
+
+    /** Botão "Janela flutuante" ou sair da app enquanto há vídeo a tocar. */
+    private fun enterPip(): Boolean {
+        val p = pipParams() ?: return false
+        if (isInPip()) return true
+        closeChannels()
+        playerView.hideController()
+        return runCatching { enterPictureInPictureMode(p) }.getOrDefault(false)
+    }
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
+        // Android 12+ trata disto sozinho (setAutoEnterEnabled)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) return
         val ch = current ?: return
-        if (isTv || ch.isRadio || Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        if (!packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) return
-        if (player?.isPlaying != true) return
-        closeChannels()
-        runCatching {
-            enterPictureInPictureMode(
-                PictureInPictureParams.Builder().setAspectRatio(Rational(16, 9)).build()
-            )
-        }
+        if (ch.isRadio || player?.isPlaying != true) return
+        enterPip()
     }
 
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
-        playerView.useController = !isInPictureInPictureMode
         if (isInPictureInPictureMode) {
+            if (overlayOpen) closeChannels() // entrada automática (Android 12+) com a lista aberta
+            playerView.hideController()
             info.visibility = View.GONE
             zap.visibility = View.GONE
             message.visibility = View.GONE
         }
+        playerView.useController = !isInPictureInPictureMode
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -675,6 +760,11 @@ class PlayerActivity : AppCompatActivity() {
 
     companion object {
         private const val MAX_RETRIES = 3
+        private const val PIP_ACTION = "pt.nuno.sintonia.PIP"
+        private const val PIP_EXTRA = "acao"
+        private const val PIP_PREV = 1
+        private const val PIP_TOGGLE = 2
+        private const val PIP_NEXT = 3
         private const val PREVIEW_DELAY = 700L
         /** Teclas que repetem quando mantidas premidas (zapping rápido). */
         private val ZAP_KEYS = setOf(

@@ -651,6 +651,7 @@ function zap(delta) {
 }
 
 async function exitPlayer() {
+  if (miniOn) await setMini(false);
   if (P.overlayOpen) closeOverlay(false);
   hideControls();
   clearTimeout(P.retryTimer);
@@ -762,18 +763,39 @@ $("#cSeek").tabIndex = -1;
 $("#cSeek").addEventListener("input", () => { if (Number.isFinite(video.duration)) video.currentTime = (+$("#cSeek").value / 1000) * video.duration; armControlsTimer(); });
 $("#cLive").addEventListener("click", () => { player.seekToLive(); video.play().catch(() => {}); armControlsTimer(); });
 $("#cChannels").addEventListener("click", () => openOverlay());
+$("#cMini").addEventListener("click", () => setMini(true));
+
+// ---------- Janela flutuante (PiP) ----------
+// Janela pequena, 16:9, sempre por cima das outras apps; ▲▼ continuam a mudar de canal.
+let miniOn = false;
+async function setMini(on) {
+  if (on === miniOn) return;
+  if (on) { if (P.overlayOpen) closeOverlay(false); hideControls(); $("#info").hidden = true; }
+  miniOn = await api.mini(on);
+  document.body.classList.toggle("mini", miniOn);
+  $("#miniBar").hidden = !miniOn;
+  syncMiniPlay();
+  if (!miniOn && current()) showInfo(current());
+}
+function syncMiniPlay() { $("#mPlay").textContent = video.paused ? "▶" : "❚❚"; }
+video.addEventListener("play", syncMiniPlay);
+video.addEventListener("pause", syncMiniPlay);
+$("#mPrev").addEventListener("click", () => zap(-1));
+$("#mNext").addEventListener("click", () => zap(+1));
+$("#mPlay").addEventListener("click", () => { if (video.paused) video.play().catch(() => {}); else video.pause(); });
+$("#mBack").addEventListener("click", () => setMini(false));
 $("#cFull").addEventListener("click", () => api.toggleFullscreen());
 
 // Rato: mexer mostra os controlos; duplo clique alterna ecrã inteiro; roda = volume
 let mouseIdle;
 $("#player").addEventListener("mousemove", () => {
-  if (P.overlayOpen) return;
+  if (P.overlayOpen || miniOn) return;
   $("#player").classList.remove("hide-cursor");
   clearTimeout(mouseIdle);
   if (!P.controlsOpen) showControls(false); else armControlsTimer();
   mouseIdle = setTimeout(() => { if (!P.controlsOpen) $("#player").classList.add("hide-cursor"); }, 3000);
 });
-$("#stage").addEventListener("dblclick", () => { if (!P.overlayOpen) api.toggleFullscreen(); });
+$("#stage").addEventListener("dblclick", () => { if (miniOn) setMini(false); else if (!P.overlayOpen) api.toggleFullscreen(); });
 $("#stage").addEventListener("wheel", (e) => {
   if (P.overlayOpen) return;
   e.preventDefault();
@@ -921,7 +943,7 @@ const ZAP_DOWN = new Set(["ArrowDown", "PageDown", "-", "ChannelDown"]);
 document.addEventListener("keydown", (e) => {
   if (document.querySelector("dialog[open]")) return; // os diálogos tratam das suas teclas
   if (e.defaultPrevented) return;
-  if (e.key === "F11") { e.preventDefault(); api.toggleFullscreen(); return; }
+  if (e.key === "F11") { e.preventDefault(); if (miniOn) setMini(false); else api.toggleFullscreen(); return; }
   if ((e.ctrlKey || e.metaKey) && (e.key === "q" || e.key === "Q")) { e.preventDefault(); api.quit(); return; }
   if (!$("#player").hidden) playerKey(e); else homeKey(e);
 });
@@ -944,6 +966,15 @@ function homeKey(e) {
 function playerKey(e) {
   const k = e.key;
   const stop = () => e.preventDefault();
+
+  if (miniOn) {
+    if (ZAP_UP.has(k)) { stop(); zap(+1); return; }
+    if (ZAP_DOWN.has(k)) { stop(); zap(-1); return; }
+    if (k === "Escape" || k === "Backspace" || k === "p" || k === "P" || k === "Enter") { stop(); setMini(false); return; }
+    if (k === " ") { stop(); $("#mPlay").click(); return; }
+    if (k === "m" || k === "M") { stop(); video.muted = !video.muted; }
+    return;
+  }
 
   if (P.overlayOpen) {
     if (k === "Escape" || k === "Backspace") {
@@ -979,6 +1010,7 @@ function playerKey(e) {
   if (k === "Enter" || k === " ") { stop(); showControls(true); return; }
   if (k === "Escape" || k === "Backspace") { stop(); if (!openOverlay()) exitPlayer(); return; }
   if (k === "f" || k === "F") { stop(); api.toggleFullscreen(); return; }
+  if (k === "p" || k === "P") { stop(); setMini(true); return; }
   if (k === "m" || k === "M") { stop(); video.muted = !video.muted; toast(video.muted ? "Som desligado" : "Som ligado"); }
 }
 

@@ -36,7 +36,9 @@ Vem pré-configurado com a lista **M3UPT** (LITUATUI, licença MIT):
 - **Rapidez:** arranque com 1 s de buffer, ligação/DNS dos canais vizinhos pré-aquecidos, listas mais leves;
   Definições mostram quanto demora a mudar de canal (último e média).
 - Ao mudar de canal só aparece o nome e o número, pequeno, durante 3 s
-- Telemóvel: deslizar da margem esquerda abre a lista; deslizar ▲▼ ou botões para mudar de canal, Picture-in-Picture (Android 8+)
+- Telemóvel: deslizar da margem esquerda abre a lista; deslizar ▲▼ ou botões para mudar de canal
+- Janela flutuante (PiP, Android 8+, telemóvel/tablet): botão no menu do OK; entra sozinha ao sair da app
+  com vídeo a tocar; botões ⏮ ⏯ ⏭ na janela. Desktop: tecla P ou "⧉ Janela" (sempre por cima)
 
 ## Comando (TV)
 | Tecla | Ação |
@@ -164,6 +166,7 @@ HLS com hls.js, DASH + ClearKey com Shaka Player; guia .gz/.xz lido em streaming
 | Esc nos grupos da lista | Volta ao ecrã principal |
 | → / I | Nome do canal (3 s) |
 | F / F11 / duplo clique | Ecrã inteiro da janela |
+| P · botão "⧉ Janela" | Janela flutuante: pequena, por cima das outras apps (▲▼ mudam de canal; P/Esc/duplo clique volta) |
 | M · roda do rato | Som ligado/desligado · volume |
 | Botão direito / F num canal | Favorito · botão direito / H num grupo: esconder |
 | R (ecrã principal) | Atualizar lista |
