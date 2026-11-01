@@ -1,17 +1,28 @@
 name: Desktop (Mac / Windows / Linux)
 
 # Testes a cada alteração do desktop ou do spec/.
-# Instaladores só nas "portas" (tag desktop-vX.Y) ou à mão (Run workflow).
+# Publicar uma versão desktop: subir "version" em desktop/package.json e fazer push para a main.
+# Se a release desktop-v<versão> ainda não existir, compila Linux (AppImage + .deb, x64 e arm64),
+# Windows e Mac e publica-a. Nunca fica como "latest" (essa é a do APK — usada pela atualização automática).
 on:
   push:
     branches: [main]
     paths: ["desktop/**", "spec/**", ".github/workflows/desktop.yml"]
-    tags: ["desktop-v*"]
   workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop
+  cancel-in-progress: false
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      publish: ${{ steps.v.outputs.publish }}
     defaults: { run: { working-directory: desktop } }
     steps:
       - uses: actions/checkout@v4
@@ -20,20 +31,29 @@ jobs:
       - run: npm ci
       - name: Leitores do desktop contra spec/
         run: npm test
+      - name: Versão e se já está publicada
+        id: v
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          V=$(node -p "require('./package.json').version")
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          if gh release view "desktop-v$V" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "desktop-v$V já existe — nada a publicar"; echo "publish=0" >> "$GITHUB_OUTPUT"
+          else echo "publish=1" >> "$GITHUB_OUTPUT"; fi
 
   build:
-    if: startsWith(github.ref, 'refs/tags/desktop-v') || github.event_name == 'workflow_dispatch'
     needs: test
+    if: needs.test.outputs.publish == '1'
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: macos-latest
-            args: --mac dmg --arm64 --x64 -c.mac.identity=-
+          - os: ubuntu-latest
+            args: --linux AppImage deb --x64 --arm64
           - os: windows-latest
             args: --win nsis --x64
-          - os: ubuntu-latest
-            args: --linux AppImage deb --x64
+          - os: macos-latest
+            args: --mac dmg --arm64 --x64 -c.mac.identity=-
     runs-on: ${{ matrix.os }}
     defaults: { run: { working-directory: desktop } }
     env:
@@ -52,3 +72,27 @@ jobs:
             desktop/dist/*.exe
             desktop/dist/*.AppImage
             desktop/dist/*.deb
+
+  publish:
+    needs: [test, build]
+    if: always() && needs.test.outputs.publish == '1' && needs.build.result != 'cancelled'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: dist, merge-multiple: true }
+      - name: Publicar release desktop (não "latest")
+        env: { GH_TOKEN: "${{ github.token }}", V: "${{ needs.test.outputs.version }}" }
+        run: |
+          ls -la dist
+          [ -n "$(ls dist)" ] || { echo "::error::nenhum instalador"; exit 1; }
+          (cd dist && sha256sum * > SHA256SUMS.txt)
+          cat > notas.md <<NOTAS
+          Sintonia para computador (Linux, Windows, Mac) — versão $V.
+
+          **Linux:** \`.deb\` (Ubuntu/Debian/Mint: \`sudo apt install ./Sintonia-$V-linux-amd64.deb\`) ou \`.AppImage\`
+          (\`chmod +x\` e abrir; em Ubuntu 22.04+ pode precisar de \`sudo apt install libfuse2\`). x64 e arm64.
+          **Windows:** \`.exe\` (sem assinatura: "Mais informações → Executar mesmo assim").
+          **Mac:** \`.dmg\` (sem assinatura Apple: botão direito → Abrir na 1.ª vez).
+          NOTAS
+          gh release create "desktop-v$V" dist/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "Sintonia desktop $V" --notes-file notas.md --latest=false
