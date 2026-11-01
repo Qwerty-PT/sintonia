@@ -1,4 +1,4 @@
-// Sintonia desktop — interface (mesmo comportamento que o APK 1.8; teclado + rato).
+// Sintonia desktop — interface (mesmo comportamento que o APK 1.17; teclado + rato).
 import { parse, epgUrls as readEpgUrls } from "../core/m3u.mjs";
 import { nowAndNext, upcoming } from "../core/epg.mjs";
 import { Player } from "./player.mjs";
@@ -8,7 +8,10 @@ const DEFAULT_URL = "https://raw.githubusercontent.com/LITUATUI/M3UPT/main/M3U/M
 const FAV = "★ Favoritos";
 const HOUR = 3_600_000;
 const PLAYLIST_MAX_AGE = 2 * HOUR;
-const EPG_MAX_AGE = 12 * HOUR;
+const EPG_MAX_AGE = 6 * HOUR;
+const OK_TTL = 12 * HOUR, FAIL_TTL = HOUR;
+const CHECK_PARALLEL = 4;
+const UPDATE_EVERY = 15 * 60_000;
 const PREVIEW_DELAY = 700;
 const MAX_RETRIES = 3;
 
@@ -18,11 +21,15 @@ const hhmm = (t) => new Date(t).toLocaleTimeString("pt-PT", { hour: "2-digit", m
 // ---------- Preferências (iguais às do APK) ----------
 const PREF_KEY = "sintonia-prefs";
 const prefs = Object.assign({
-  playlistUrl: DEFAULT_URL, autoplayLast: true, autoPreview: false,
+  playlistUrl: DEFAULT_URL, autoplayLast: false, autoplayV2: false, autoPreview: false,
+  hideDead: false, autoUpdate: true, updateChecked: 0, snoozeVersion: "", snoozeAt: 0,
+  zapLast: 0, zapAvg: 0, zapCount: 0,
   lastKey: null, lastGroup: null, lastUpdate: 0,
   epgUrl: "", epgUpdate: 0, epgSource: "",
   hiddenGroups: [], favourites: [], volume: 1, muted: false,
 }, (() => { try { return JSON.parse(localStorage.getItem(PREF_KEY) || "{}"); } catch { return {}; } })());
+// 1.10: abre no menu principal por omissão (como no APK); quem já tinha escolhido mantém-se depois disto
+if (!prefs.autoplayV2) { prefs.autoplayLast = false; prefs.autoplayV2 = true; }
 const savePrefs = () => { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch { /* sem espaço */ } };
 const favSet = () => new Set(prefs.favourites);
 
@@ -41,9 +48,69 @@ function groupsList() {
   return (S.channels.some((c) => favs.has(c.key)) ? [FAV] : []).concat(names);
 }
 function channelsFor(g) {
-  if (g === FAV) { const f = favSet(); return S.channels.filter((c) => f.has(c.key)); }
-  return S.channels.filter((c) => c.group === g);
+  const f = favSet();
+  const list = g === FAV ? S.channels.filter((c) => f.has(c.key)) : S.channels.filter((c) => c.group === g);
+  return prefs.hideDead ? list.filter((c) => !isDead(c)) : list;
 }
+
+// ---------- Verificação de canais (1.13) ----------
+// Feita pelo processo principal com os cabeçalhos de cada canal; só lê o índice do stream.
+const CK = { status: {}, running: false, done: 0, total: 0, stop: false, saveTimer: null };
+const statusOf = (ch) => CK.status[ch.key];
+const isDead = (ch) => statusOf(ch)?.state === "DEAD";
+
+async function loadChecks() {
+  try { CK.status = JSON.parse((await api.cacheRead("canais.json")) || "{}") || {}; } catch { CK.status = {}; }
+}
+function saveChecks() {
+  clearTimeout(CK.saveTimer);
+  CK.saveTimer = setTimeout(() => api.cacheWrite("canais.json", JSON.stringify(CK.status)), 1500);
+}
+function putStatus(ch, st) {
+  const old = CK.status[ch.key];
+  CK.status[ch.key] = st;
+  if (old?.state !== st.state) { saveChecks(); return true; }
+  return false;
+}
+/** O que o leitor confirma ao tocar/falhar prevalece sobre a verificação. */
+function markOk(ch) { if (putStatus(ch, { state: "OK", at: Date.now(), reason: "" })) refreshGuides(); }
+function markFailed(ch, reason) { if (putStatus(ch, { state: "DEAD", at: Date.now(), reason })) refreshGuides(); }
+
+/** Favoritos e grupo aberto primeiro; depois os restantes grupos visíveis (escondidos não). */
+async function startCheck(force = false) {
+  if (CK.running || !S.channels.length) return;
+  const hidden = new Set(prefs.hiddenGroups), favs = favSet();
+  const visible = S.channels.filter((c) => !hidden.has(c.group));
+  const openG = home.groups[home.sel];
+  const ordered = [...visible.filter((c) => favs.has(c.key)), ...visible.filter((c) => c.group === openG), ...visible];
+  const now = Date.now(), seen = new Set();
+  const todo = ordered.filter((c) => {
+    if (seen.has(c.key)) return false;
+    seen.add(c.key);
+    const st = CK.status[c.key];
+    return force || !st || now - st.at > (st.state === "OK" ? OK_TTL : FAIL_TTL);
+  });
+  if (!todo.length) return;
+  Object.assign(CK, { running: true, stop: false, done: 0, total: todo.length });
+  updateStatus();
+  let next = 0, sinceRedraw = 0;
+  const worker = async () => {
+    while (!CK.stop && next < todo.length) {
+      const ch = todo[next++];
+      try { putStatus(ch, await api.checkChannel({ url: ch.url, userAgent: ch.userAgent, headers: ch.headers })); } catch { /* ignora */ }
+      CK.done++;
+      if (++sinceRedraw >= 20) { sinceRedraw = 0; refreshGuides(); }
+      updateStatus();
+    }
+  };
+  await Promise.all(Array.from({ length: CHECK_PARALLEL }, worker));
+  CK.running = false;
+  saveChecks();
+  updateStatus();
+  refreshGuides();
+}
+/** Pára a verificação (ex.: ao começar a ver um canal, para não gastar rede). */
+function stopCheck() { CK.stop = true; }
 
 // ---------- Aviso curto ----------
 const toastEl = Object.assign(document.createElement("div"), { className: "toast" });
@@ -150,11 +217,21 @@ function logoEl(ch, cls = "logo") {
 }
 function subText(ch, showGroup) {
   const [now] = nowAndNext(S.guide, ch);
+  const st = statusOf(ch)?.state;
   const parts = [];
   if (showGroup) parts.push(ch.group);
-  if (now) parts.push(`▶ ${now.title}`);
+  if (st === "DEAD") parts.push("✕ não está a funcionar");
+  else if (st === "BLOCKED") parts.push("⚠ bloqueado (talvez só noutro país)");
+  else if (now) parts.push(`▶ ${now.title}`);
   else if (ch.isRadio && !showGroup) parts.push("Rádio");
   return parts.join(" · ");
+}
+function markItem(b, ch) {
+  const st = statusOf(ch);
+  b.classList.toggle("dead", st?.state === "DEAD");
+  const sub = b.querySelector(".ch-sub");
+  if (sub) sub.classList.toggle("warn", st?.state === "DEAD" || st?.state === "BLOCKED");
+  b.title = st && st.state !== "OK" && st.reason ? `${ch.name} — ${st.reason}` : ch.name;
 }
 function renderChannel(ch, showGroup) {
   const b = document.createElement("button");
@@ -166,6 +243,7 @@ function renderChannel(ch, showGroup) {
   sub.hidden = !sub.textContent;
   text.append(name, sub);
   b.append(logoEl(ch), text);
+  markItem(b, ch);
   if (favSet().has(ch.key)) b.append(Object.assign(document.createElement("span"), { className: "star", textContent: "★" }));
   return b;
 }
@@ -181,6 +259,7 @@ function updateSubs(list, showGroup) {
     if (!sub) return;
     sub.textContent = subText(ch, showGroup);
     sub.hidden = !sub.textContent;
+    markItem(b, ch);
   });
 }
 
@@ -266,6 +345,7 @@ function applyChannels() {
   showGroup(home.sel);
   $("#empty").hidden = S.channels.length > 0;
   updateStatus();
+  setTimeout(() => { if ($("#player").hidden) startCheck(); }, 1500);
 
   if (!S.autoplayDone) {
     S.autoplayDone = true;
@@ -301,8 +381,10 @@ function focusHomeChannel(key) {
 function focusHomeGroup() { homeGroups.focus(home.sel); }
 
 function updateStatus() {
-  const n = S.channels.length;
-  if (!n) { $("#status").textContent = ""; return; }
+  if (!S.channels.length) { $("#status").textContent = ""; return; }
+  // conta só o que se vê: sem os grupos escondidos (nem os canais em baixo, se escondidos)
+  const hidden = new Set(prefs.hiddenGroups);
+  const n = S.channels.filter((c) => !hidden.has(c.group) && !(prefs.hideDead && isDead(c))).length;
   const base = prefs.lastUpdate ? `${n} canais · atualizada às ${hhmm(prefs.lastUpdate)}` : `${n} canais`;
   const guide = {
     loading: "guia a carregar…",
@@ -310,7 +392,8 @@ function updateStatus() {
     error: "guia indisponível",
     none: "sem guia",
   }[S.guideState];
-  $("#status").textContent = guide ? `${base} · ${guide}` : base;
+  const check = CK.running ? `a verificar canais ${CK.done}/${CK.total}` : null;
+  $("#status").textContent = [base, guide, check].filter(Boolean).join(" · ");
 }
 
 function toggleFav(ch) {
@@ -421,6 +504,24 @@ async function startEpg(force) {
   S.guideState = "loading";
   updateStatus();
   const now = Date.now();
+  // Lista M3UPT: guia já preparado no GitHub (~200 KB em vez de ler dezenas de MB de XMLTV)
+  if (!prefs.epgUrl.trim() && prefs.playlistUrl === DEFAULT_URL) {
+    try {
+      const g = await api.loadPrebuilt(key);
+      if (Object.keys(g.programmes).length) {
+        S.guide = g;
+        S.guideState = "ready";
+        prefs.epgSource = key;
+        prefs.epgUpdate = Date.now();
+        savePrefs();
+        await api.cacheWrite("epg.json", JSON.stringify({ source: key, ...S.guide }));
+        S.epgLoading = false;
+        updateStatus();
+        refreshGuides();
+        return;
+      }
+    } catch (e) { console.warn("Guia preparado indisponível, a usar o XMLTV:", e); }
+  }
   try {
     const r = await api.loadEpg({
       urls,
@@ -472,12 +573,25 @@ video.addEventListener("pause", syncPlayBtn);
 const P = {
   list: [], index: 0, retries: 0, retryTimer: null,
   controlsOpen: false, overlayOpen: false, infoTimer: null, ctlTimer: null, infoEpg: false,
-  previewTimer: null,
+  previewTimer: null, zapStart: 0,
 };
+
+/** Quanto demora a mudar de canal (aparece nas Definições). */
+function recordZap(ms) {
+  prefs.zapLast = ms;
+  prefs.zapAvg = prefs.zapCount ? (prefs.zapAvg * Math.min(prefs.zapCount, 49) + ms) / (Math.min(prefs.zapCount, 49) + 1) : ms;
+  prefs.zapCount++;
+  savePrefs();
+}
 const current = () => P.list[P.index];
 
 const player = new Player(video, {
-  onPlaying: () => { P.retries = 0; hideMessage(); $("#spinner").hidden = true; },
+  onPlaying: () => {
+    P.retries = 0; hideMessage(); $("#spinner").hidden = true;
+    const ch = current();
+    if (ch) markOk(ch);
+    if (P.zapStart) { recordZap(performance.now() - P.zapStart); P.zapStart = 0; }
+  },
   onError: (msg) => {
     const ch = current();
     if (!ch) return;
@@ -489,6 +603,8 @@ const player = new Player(video, {
       P.retryTimer = setTimeout(() => player.play(ch), 2000 * P.retries);
     } else {
       showMessage(`Não foi possível abrir este canal.\n${msg}\n\n▲ ▼ para mudar de canal`);
+      markFailed(ch, msg);
+      P.zapStart = 0;
     }
   },
 });
@@ -497,6 +613,7 @@ function play(list, index) {
   if (!list.length || index < 0 || index >= list.length) return;
   P.list = list;
   P.index = index;
+  stopCheck();
   $("#home").hidden = true;
   $("#player").hidden = false;
   document.activeElement?.blur();
@@ -516,13 +633,20 @@ function playCurrent() {
   const logo = $("#radioLogo");
   if (ch.isRadio && ch.logo) { logo.src = ch.logo; logo.hidden = P.overlayOpen; } else logo.hidden = true;
   $("#spinner").hidden = false;
+  P.zapStart = performance.now();
   player.play(ch);
 }
 
 function zap(delta) {
   const n = P.list.length;
   if (!n) return;
-  P.index = (((P.index + delta) % n) + n) % n;
+  // salta os canais que se sabe estarem em baixo
+  let i = P.index;
+  for (let step = 0; step < n; step++) {
+    i = (((i + delta) % n) + n) % n;
+    if (!isDead(P.list[i])) break;
+  }
+  P.index = i;
   playCurrent();
 }
 
@@ -541,6 +665,7 @@ async function exitPlayer() {
   const g = home.groups.indexOf(prefs.lastGroup);
   showGroup(g >= 0 ? g : Math.min(home.sel, home.groups.length - 1));
   focusHomeChannel(prefs.lastKey);
+  setTimeout(() => startCheck(), 3000);
 }
 
 // ---------- Mensagens e informação ----------
@@ -743,7 +868,7 @@ function showOvGroup(i, focusKey) {
     const idx = Math.max(0, items.findIndex((c) => c.key === focusKey));
     ovChannels.focus(idx);
   } else if (!ovChannels.hasFocus()) {
-    ovGuide.bind(items[0] || null);
+    ovGuide.bind(current() || items[0] || null); // sem foco: continua no canal que está a tocar
   }
 }
 
@@ -763,6 +888,7 @@ function choose(i) {
   P.list = items;
   P.index = i;
   playCurrent();
+  ovGuide.bind(items[i]);
 }
 
 function schedulePreview(i) {
@@ -796,6 +922,7 @@ document.addEventListener("keydown", (e) => {
   if (document.querySelector("dialog[open]")) return; // os diálogos tratam das suas teclas
   if (e.defaultPrevented) return;
   if (e.key === "F11") { e.preventDefault(); api.toggleFullscreen(); return; }
+  if ((e.ctrlKey || e.metaKey) && (e.key === "q" || e.key === "Q")) { e.preventDefault(); api.quit(); return; }
   if (!$("#player").hidden) playerKey(e); else homeKey(e);
 });
 
@@ -864,6 +991,11 @@ $("#btnSettings").addEventListener("click", () => {
   $("#setEpg").value = prefs.epgUrl;
   $("#setAutoplay").checked = prefs.autoplayLast;
   $("#setPreview").checked = prefs.autoPreview;
+  $("#setHideDead").checked = prefs.hideDead;
+  $("#setAutoUpdate").checked = prefs.autoUpdate;
+  $("#zapStats").textContent = prefs.zapCount
+    ? `Mudar de canal: último ${(prefs.zapLast / 1000).toFixed(1)} s · média ${(prefs.zapAvg / 1000).toFixed(1)} s (${prefs.zapCount} vezes)`
+    : "Mudar de canal: ainda sem medições";
   dlg.showModal();
 });
 $("#btnCancel").addEventListener("click", () => dlg.close());
@@ -876,8 +1008,12 @@ $("#btnResetDefault").addEventListener("click", () => saveSettings(DEFAULT_URL, 
 function saveSettings(url, epg) {
   prefs.autoplayLast = $("#setAutoplay").checked;
   prefs.autoPreview = $("#setPreview").checked;
+  const hideChanged = prefs.hideDead !== $("#setHideDead").checked;
+  prefs.hideDead = $("#setHideDead").checked;
+  prefs.autoUpdate = $("#setAutoUpdate").checked;
   savePrefs();
   dlg.close();
+  if (hideChanged) applyChannels();
   changeEpg(epg);
   changeUrl(url);
 }
@@ -909,6 +1045,42 @@ async function changeUrl(u) {
   refresh(true);
 }
 
+$("#btnCheckChannels").addEventListener("click", () => {
+  toast("A verificar todos os canais visíveis…");
+  dlg.close();
+  CK.stop = true;
+  setTimeout(() => startCheck(true), CK.running ? 1500 : 0);
+});
+$("#btnCheckUpdates").addEventListener("click", () => { dlg.close(); checkUpdates(true); });
+
+// =====================================================================
+// Atualizações (releases desktop no GitHub)
+// =====================================================================
+let pendingUpdate = null;
+async function checkUpdates(userAsked) {
+  if (userAsked) toast("A procurar atualizações…");
+  try {
+    const r = await api.checkUpdate();
+    prefs.updateChecked = Date.now();
+    savePrefs();
+    if (!r.available) { if (userAsked) toast(`Já tens a versão mais recente (${r.current})`); return; }
+    const snoozed = prefs.snoozeVersion === r.version && Date.now() - prefs.snoozeAt < 24 * HOUR;
+    if (snoozed && !userAsked) return;
+    pendingUpdate = r;
+    $("#updateText").textContent = `Há uma versão nova do Sintonia: ${r.version} (tens a ${r.current}).`;
+    $("#updateBar").hidden = false;
+    if (userAsked) $("#btnUpdateGet").focus();
+  } catch (e) {
+    if (userAsked) toast(`Não foi possível procurar atualizações: ${String(e?.message || e).replace(/^Error invoking remote method '[^']+': (Error: )?/, "")}`);
+  }
+}
+$("#btnUpdateGet").addEventListener("click", () => { if (pendingUpdate) api.openExternal(pendingUpdate.url); $("#updateBar").hidden = true; });
+$("#btnUpdateLater").addEventListener("click", () => {
+  if (pendingUpdate) { prefs.snoozeVersion = pendingUpdate.version; prefs.snoozeAt = Date.now(); savePrefs(); }
+  $("#updateBar").hidden = true;
+});
+setInterval(() => { if (prefs.autoUpdate && Date.now() - prefs.updateChecked >= UPDATE_EVERY) checkUpdates(false); }, 60_000);
+
 // Grupos visíveis
 const gdlg = $("#groupsDialog");
 $("#btnGroups").addEventListener("click", () => {
@@ -937,6 +1109,8 @@ $("#btnGroupsSave").addEventListener("click", () => {
 // Arranque
 // =====================================================================
 $("#btnReload").addEventListener("click", () => refresh(true));
+$("#btnExit").addEventListener("click", () => api.quit());
+$("#btnExit").addEventListener("keydown", (e) => { if (e.key === "ArrowDown") { e.preventDefault(); focusHomeChannel(prefs.lastKey); } });
 $("#empty").addEventListener("click", () => refresh(true));
 $("#btnReload").addEventListener("keydown", (e) => { if (e.key === "ArrowDown") { e.preventDefault(); focusHomeChannel(prefs.lastKey); } });
 $("#btnSettings").addEventListener("keydown", (e) => { if (e.key === "ArrowDown") { e.preventDefault(); focusHomeChannel(prefs.lastKey); } });
@@ -952,6 +1126,8 @@ setInterval(() => {
   api.version().then((v) => { $("#version").textContent = `Sintonia ${v} (desktop)`; });
   const cached = await api.cacheRead("playlist.m3u");
   await loadEpgCache();
+  await loadChecks();
+  if (prefs.autoUpdate) setTimeout(() => checkUpdates(false), 4000);
   if (cached) { loadText(cached); applyChannels(); }
   if (!cached || Date.now() - prefs.lastUpdate > PLAYLIST_MAX_AGE) await refresh(false);
   else startEpg(false);

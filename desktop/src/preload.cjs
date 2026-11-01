@@ -10,4 +10,9 @@ contextBridge.exposeInMainWorld("sintonia", {
   loadEpg: (opts) => ipcRenderer.invoke("load-epg", opts),
   toggleFullscreen: () => ipcRenderer.invoke("toggle-fullscreen"),
   version: () => ipcRenderer.invoke("version"),
+  checkChannel: (ch) => ipcRenderer.invoke("check-channel", ch),
+  loadPrebuilt: (key) => ipcRenderer.invoke("load-prebuilt", key),
+  checkUpdate: () => ipcRenderer.invoke("check-update"),
+  openExternal: (url) => ipcRenderer.invoke("open-external", url),
+  quit: () => ipcRenderer.invoke("quit"),
 });

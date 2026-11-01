@@ -133,3 +133,14 @@ dialog button:hover { border-color: var(--accent); }
 dialog button:focus-visible { outline: 2px solid var(--accent); }
 dialog button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .checks { display: flex; flex-direction: column; max-height: 50vh; overflow-y: auto; gap: 2px; }
+
+/* ---------- 1.9+ ---------- */
+.icon-btn.labelled { width: auto; padding: 0 14px 0 10px; display: inline-flex; gap: 8px; align-items: center; font-size: 15px; }
+.update-bar { display: flex; align-items: center; gap: 10px; background: var(--panel); border-radius: 10px; padding: 8px 12px; font-size: 14px; }
+.update-bar span { flex: 1; }
+.update-bar button { border: 1px solid #2f3848; background: var(--surface); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+.update-bar button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.update-bar button:focus-visible { outline: 2px solid var(--text); }
+.item.dead { opacity: 0.45; }
+.item.dead:focus { opacity: 1; }
+.ch-sub.warn { color: var(--warn); }

@@ -95,6 +95,10 @@ export class Player {
       manifestLoadingMaxRetry: 2,
       levelLoadingMaxRetry: 2,
       fragLoadingMaxRetry: 3,
+      // arranque mais rápido (1.13): pede o 1.º segmento já e não espera por 30 s de buffer
+      startFragPrefetch: true,
+      maxBufferLength: 20,
+      liveSyncDurationCount: 3,
     });
     this.hls = hls;
     this.mode = "hls";

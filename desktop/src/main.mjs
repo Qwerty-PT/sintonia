@@ -12,6 +12,7 @@ import zlib from "node:zlib";
 import sax from "sax";
 import xzPkg from "xz-decompress";
 import { createCollector } from "./core/epg.mjs";
+import { classify, firstVariant, kindOf, parseTsv, newerVersion, DEAD } from "./core/check.mjs";
 
 const { XzReadableStream } = xzPkg; // pacote CommonJS: só exporta via default
 
@@ -86,7 +87,7 @@ function setupNetwork() {
 }
 
 // ---------- Cache em disco ----------
-const CACHE_FILES = new Set(["playlist.m3u", "epg.json"]);
+const CACHE_FILES = new Set(["playlist.m3u", "epg.json", "canais.json"]);
 const cachePath = (name) => path.join(app.getPath("userData"), name);
 
 // ---------- Guia (XMLTV .xml/.gz/.xz em streaming) ----------
@@ -132,6 +133,94 @@ async function loadEpg({ urls, ids, names, from, to }) {
   return { ok, errors, programmes, nameToId };
 }
 
+// ---------- Verificação de canais (só o índice do stream, nunca vídeo) ----------
+async function readSome(res, max) {
+  if (!res.body) return Buffer.alloc(0);
+  const reader = res.body.getReader();
+  const chunks = [];
+  let n = 0;
+  try {
+    while (n < max) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value); n += value.length;
+    }
+  } finally { reader.cancel().catch(() => {}); }
+  return Buffer.concat(chunks).subarray(0, max);
+}
+
+/** Alguns servidores (ex.: RTP) mandam a lista em gzip sem o dizer no cabeçalho. */
+function gunzipIfNeeded(b) {
+  if (b.length < 2 || b[0] !== 0x1f || b[1] !== 0x8b) return b;
+  try { return zlib.gunzipSync(b, { finishFlush: zlib.constants.Z_SYNC_FLUSH }); } catch { return b; }
+}
+
+async function fetchIndex(ch, url, max) {
+  const headers = { "User-Agent": ch.userAgent || DEFAULT_UA, ...(ch.headers || {}) };
+  if (max <= 4096) headers.Range = `bytes=0-${max - 1}`;
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), 10_000);
+  try {
+    const res = await fetch(url, { headers, redirect: "follow", signal: ctl.signal });
+    const body = gunzipIfNeeded(await readSome(res, max)).toString("utf8");
+    return { code: res.status === 206 ? 200 : res.status, type: res.headers.get("content-type"), body, url: res.url || url };
+  } finally { clearTimeout(t); }
+}
+
+async function checkOnce(ch) {
+  const now = Date.now();
+  try {
+    const kind = kindOf(ch.url);
+    const r = await fetchIndex(ch, ch.url, kind === "direct" ? 2048 : 256 * 1024);
+    let [state, reason] = classify(r.code, r.type, r.body, kind);
+    // HLS principal: confirmar também a 1.ª variante (é aí que os canais "meio mortos" falham)
+    if (state === "OK" && r.body.includes("#EXT-X-STREAM-INF")) {
+      const v = firstVariant(r.url, r.body);
+      if (v) { const rv = await fetchIndex(ch, v, 256 * 1024); [state, reason] = classify(rv.code, rv.type, rv.body, "hls"); }
+    }
+    return { state, at: now, reason };
+  } catch (e) {
+    const c = e?.cause?.code || "";
+    const reason = e?.name === "AbortError" || /TIMEOUT/.test(c) ? "sem resposta"
+      : c === "ENOTFOUND" ? "servidor não existe" : (e?.cause?.message || e?.message || "erro de rede");
+    return { state: DEAD, at: now, reason };
+  }
+}
+
+async function checkChannel(ch) {
+  const first = await checkOnce(ch);
+  // erros de rede podem ser passageiros: só conta como morto se falhar duas vezes
+  if (first.state !== DEAD || first.reason.startsWith("já não existe")) return first;
+  await new Promise((r) => setTimeout(r, 1500));
+  return checkOnce(ch);
+}
+
+// ---------- Guia preparado (GitHub Actions, guia.yml) ----------
+const REPO = "Qwerty-PT/sintonia";
+const PREBUILT_URL = `https://raw.githubusercontent.com/${REPO}/dados/guia-m3upt.tsv.gz`;
+
+async function loadPrebuilt(sourceKey) {
+  const res = await fetch(PREBUILT_URL, { headers: { "User-Agent": DEFAULT_UA } });
+  if (!res.ok) throw new Error(`guia preparado: ${res.status}`);
+  const r = parseTsv(gunzipIfNeeded(Buffer.from(await res.arrayBuffer())).toString("utf8"));
+  if (r.source && sourceKey && r.source !== sourceKey) throw new Error(`guia preparado é de outra fonte (${r.source})`);
+  return { programmes: r.programmes, nameToId: r.nameToId };
+}
+
+// ---------- Atualizações (releases desktop-v* no GitHub) ----------
+async function checkUpdate() {
+  const res = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=30`, {
+    headers: { "User-Agent": "Sintonia-desktop", Accept: "application/vnd.github+json" },
+  });
+  if (!res.ok) throw new Error(`GitHub respondeu ${res.status}`);
+  const list = await res.json();
+  const rel = list.filter((r) => !r.draft && /^desktop-v/.test(r.tag_name))
+    .map((r) => ({ version: r.tag_name.replace(/^desktop-v/, ""), url: r.html_url, notes: r.body || "" }))
+    .sort((a, b) => (newerVersion(a.version, b.version) ? -1 : 1))[0];
+  if (!rel) return { available: false, current: app.getVersion() };
+  return { available: newerVersion(rel.version, app.getVersion()), current: app.getVersion(), ...rel };
+}
+
 // ---------- IPC ----------
 function setupIpc() {
   ipcMain.handle("fetch-text", async (_e, url) => {
@@ -161,6 +250,11 @@ function setupIpc() {
     return w?.isFullScreen() ?? false;
   });
   ipcMain.handle("version", () => app.getVersion());
+  ipcMain.handle("check-channel", (_e, ch) => checkChannel(ch));
+  ipcMain.handle("load-prebuilt", (_e, key) => loadPrebuilt(key));
+  ipcMain.handle("check-update", () => checkUpdate());
+  ipcMain.handle("open-external", (_e, url) => { if (/^https:\/\/github\.com\//.test(url)) shell.openExternal(url); return true; });
+  ipcMain.handle("quit", () => app.quit());
 }
 
 // ---------- Janela ----------

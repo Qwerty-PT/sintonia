@@ -148,7 +148,10 @@ Regras:
 
 ## Desktop (Mac / Windows / Linux) — pasta `desktop/`
 
-Electron, mesmo comportamento que o APK 1.8 (versão `1.8.0`). O processo principal põe nos pedidos de vídeo
+Electron, mesmo comportamento que o APK 1.17 (versão `1.17.0`): verificação de canais (feita pelo processo
+principal, com os cabeçalhos de cada canal), guia preparado da M3UPT, contador só dos grupos visíveis, abre no
+menu principal, botões Atualizar/Definições/Sair (Ctrl+Q), aviso de versão nova (releases `desktop-v*`,
+abre a página para transferir), tempo de mudar de canal nas Definições. O processo principal põe nos pedidos de vídeo
 os cabeçalhos de cada canal (User-Agent, Referer, Origin) e desliga o CORS só para esses pedidos;
 HLS com hls.js, DASH + ClearKey com Shaka Player; guia .gz/.xz lido em streaming fora do ecrã.
 
@@ -172,8 +175,9 @@ Instaladores:
 - Linux: `npm run dist:linux` (AppImage + .deb) — compila em qualquer Linux.
 - Mac: `npm run dist:mac` num Mac (o `.zip` também compila em Linux, sem assinatura).
 - Windows: `npm run dist:win` em Windows (ou Linux com Wine).
-- GitHub Actions (`.github/workflows/desktop.yml`): testes a cada alteração; os três instaladores com uma
-  tag `desktop-v1.8.0` ou "Run workflow".
+- GitHub Actions (`.github/workflows/desktop.yml`): testes a cada alteração; ao subir `version` em
+  `desktop/package.json` compila Linux (deb/AppImage, x64+arm64), Windows e Mac e publica a release
+  `desktop-v<versão>` (nunca "latest" — essa é a do APK).
 
 Sem certificados de programador (Apple/Microsoft):
 - **Mac**: depois de copiar para Aplicações, se disser "danificada" ou "programador não identificado":
