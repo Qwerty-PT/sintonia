@@ -286,6 +286,13 @@ function setupIpc() {
   ipcMain.handle("open-external", (_e, url) => { if (/^https:\/\/github\.com\//.test(url)) shell.openExternal(url); return true; });
   ipcMain.handle("quit", () => app.quit());
   ipcMain.handle("mini", (e, on) => setMini(BrowserWindow.fromWebContents(e.sender), !!on));
+  ipcMain.handle("win", (e, what) => {
+    const w = BrowserWindow.fromWebContents(e.sender);
+    if (!w) return false;
+    if (what === "minimize") w.minimize();
+    else if (what === "restore") { if (w.isMinimized()) w.restore(); w.show(); w.focus(); }
+    return true;
+  });
 }
 
 // ---------- Janela ----------

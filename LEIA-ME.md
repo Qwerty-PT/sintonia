@@ -166,7 +166,7 @@ HLS com hls.js, DASH + ClearKey com Shaka Player; guia .gz/.xz lido em streaming
 | Esc nos grupos da lista | Volta ao ecrã principal |
 | → / I | Nome do canal (3 s) |
 | F / F11 / duplo clique | Ecrã inteiro da janela |
-| P · botão "⧉ Janela" | Janela flutuante: pequena, por cima das outras apps (▲▼ mudam de canal; P/Esc/duplo clique volta) |
+| P · botão "⧉ Janela" | Janela flutuante (picture-in-picture do sistema, sem barra, sempre por cima; ⏮ ⏭ mudam de canal; a janela principal minimiza). Se o sistema não deixar, usa uma janela pequena própria |
 | M · roda do rato | Som ligado/desligado · volume |
 | Botão direito / F num canal | Favorito · botão direito / H num grupo: esconder |
 | R (ecrã principal) | Atualizar lista |

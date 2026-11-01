@@ -635,6 +635,7 @@ function playCurrent() {
   $("#spinner").hidden = false;
   P.zapStart = performance.now();
   player.play(ch);
+  updateMediaSession();
 }
 
 function zap(delta) {
@@ -651,7 +652,7 @@ function zap(delta) {
 }
 
 async function exitPlayer() {
-  if (miniOn) await setMini(false);
+  if (miniOn || nativePip) await setMini(false);
   if (P.overlayOpen) closeOverlay(false);
   hideControls();
   clearTimeout(P.retryTimer);
@@ -767,15 +768,62 @@ $("#cMini").addEventListener("click", () => setMini(true));
 
 // ---------- Janela flutuante (PiP) ----------
 // Janela pequena, 16:9, sempre por cima das outras apps; ▲▼ continuam a mudar de canal.
-let miniOn = false;
+let miniOn = false;     // janela pequena própria (alternativa)
+let nativePip = false;  // picture-in-picture do Chromium: janela sem barra, sempre por cima
+
 async function setMini(on) {
-  if (on === miniOn) return;
-  if (on) { if (P.overlayOpen) closeOverlay(false); hideControls(); $("#info").hidden = true; }
-  miniOn = await api.mini(on);
+  if (on) {
+    if (nativePip || miniOn) return;
+    if (P.overlayOpen) closeOverlay(false);
+    hideControls();
+    $("#info").hidden = true;
+    // 1.º: PiP do sistema (sem barra de título, com ⏮ ⏯ ⏭); a janela principal minimiza
+    if (document.pictureInPictureEnabled && !video.disablePictureInPicture) {
+      try {
+        // o vídeo ainda a arrancar: espera pelos metadados (até 4 s, dentro do tempo do clique/tecla)
+        if (video.readyState < 1) {
+          await new Promise((res) => {
+            const t = setTimeout(res, 4000);
+            video.addEventListener("loadedmetadata", () => { clearTimeout(t); res(); }, { once: true });
+          });
+        }
+        await video.requestPictureInPicture();
+        nativePip = true;
+        updateMediaSession();
+        api.win("minimize");
+        return;
+      } catch (e) { console.warn("PiP do sistema indisponível, a usar janela pequena:", e?.name, e?.message); }
+    }
+    miniOn = await api.mini(true);
+  } else {
+    if (nativePip) { nativePip = false; try { await document.exitPictureInPicture(); } catch { /* já fechada */ } api.win("restore"); }
+    if (miniOn) miniOn = await api.mini(false);
+    if (current()) showInfo(current());
+  }
   document.body.classList.toggle("mini", miniOn);
   $("#miniBar").hidden = !miniOn;
   syncMiniPlay();
-  if (!miniOn && current()) showInfo(current());
+}
+// Fechar a janela PiP (✕ ou "voltar") traz a janela principal de volta
+video.addEventListener("leavepictureinpicture", () => {
+  if (!nativePip) return;
+  nativePip = false;
+  api.win("restore");
+  if (current()) showInfo(current());
+});
+// Botões ⏮ ⏭ na janela PiP e teclas multimédia do teclado
+function updateMediaSession() {
+  if (!("mediaSession" in navigator)) return;
+  const ch = current();
+  try {
+    navigator.mediaSession.metadata = ch
+      ? new MediaMetadata({ title: ch.name, artist: "Sintonia", artwork: ch.logo ? [{ src: ch.logo }] : [] })
+      : null;
+  } catch { /* logótipo inválido */ }
+}
+if ("mediaSession" in navigator) {
+  navigator.mediaSession.setActionHandler("previoustrack", () => zap(-1));
+  navigator.mediaSession.setActionHandler("nexttrack", () => zap(+1));
 }
 function syncMiniPlay() { $("#mPlay").textContent = video.paused ? "▶" : "❚❚"; }
 video.addEventListener("play", syncMiniPlay);
@@ -1164,3 +1212,7 @@ setInterval(() => {
   if (!cached || Date.now() - prefs.lastUpdate > PLAYLIST_MAX_AGE) await refresh(false);
   else startEpg(false);
 })();
+// Enquanto o vídeo está na janela PiP, o ecrã principal mostra isso (em vez do texto do Chromium)
+video.addEventListener("enterpictureinpicture", () => { $("#pipNote").hidden = false; });
+video.addEventListener("leavepictureinpicture", () => { $("#pipNote").hidden = true; });
+$("#pipBack").addEventListener("click", () => setMini(false));
