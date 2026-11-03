@@ -797,6 +797,7 @@ async function setMini(on) {
     miniOn = await api.mini(true);
   } else {
     if (nativePip) { nativePip = false; try { await document.exitPictureInPicture(); } catch { /* já fechada */ } api.win("restore"); }
+    document.activeElement?.blur(); // o botão "Voltar a ver aqui" fica escondido: as teclas voltam ao leitor
     if (miniOn) miniOn = await api.mini(false);
     if (current()) showInfo(current());
   }
