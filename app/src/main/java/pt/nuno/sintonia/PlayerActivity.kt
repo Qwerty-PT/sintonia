@@ -89,6 +89,13 @@ class PlayerActivity : AppCompatActivity() {
 
     private val handler = Handler(Looper.getMainLooper())
     private val hideInfo = Runnable { info.visibility = View.GONE }
+
+    /** Zapping: o canal só arranca quando se pára de carregar (toques rápidos saltam sem carregar cada um). */
+    private val startPending = Runnable { playCurrent(fromZap = true) }
+    /** Telemóvel com os controlos abertos: o guia volta a aparecer quando se pára de mudar de canal. */
+    private val epgAfterZap = Runnable {
+        if (playerView.isControllerFullyVisible) current?.let { showInfo(it, autoHide = false, withEpg = true) }
+    }
     private var retry: Runnable? = null
     private var retries = 0
     private var isTv = false
@@ -204,6 +211,8 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
+        handler.removeCallbacks(startPending)
+        handler.removeCallbacks(epgAfterZap)
         cancelRetry()
         playerView.player = null
         player?.release()
@@ -216,7 +225,8 @@ class PlayerActivity : AppCompatActivity() {
     private var zapStartedAt = 0L
     private var zapMeasured = true
 
-    private fun playCurrent() {
+    private fun playCurrent(fromZap: Boolean = false) {
+        handler.removeCallbacks(startPending)
         val ch = current ?: return
         zapStartedAt = android.os.SystemClock.elapsedRealtime()
         zapMeasured = false
@@ -225,8 +235,11 @@ class PlayerActivity : AppCompatActivity() {
         message.visibility = View.GONE
         message.text = ""
         prefs.lastKey = ch.key
-        playerView.hideController()
-        showInfo(ch)
+        // no zapping a interface já foi tratada em zap() (no telemóvel os botões ▲▼ ficam)
+        if (!fromZap) {
+            playerView.hideController()
+            showInfo(ch)
+        }
         if (ch.isRadio) {
             radioLogo.visibility = if (overlayOpen) View.GONE else View.VISIBLE
             radioLogo.load(ch.logo) { error(R.drawable.ic_radio); fallback(R.drawable.ic_radio) }
@@ -273,7 +286,21 @@ class PlayerActivity : AppCompatActivity() {
             if (!ChannelCheck.isDead(Session.list[i]) || step == n) break
         }
         Session.index = i
-        playCurrent()
+        val ch = Session.list[i]
+        // Telemóvel com os controlos abertos: ficam abertos (▲▼ à mão) e o tempo para fecharem recomeça;
+        // durante o zapping só o nome do canal — o guia volta quando se parar
+        val keepControls = !isTv && playerView.isControllerFullyVisible && !isInPip()
+        handler.removeCallbacks(epgAfterZap)
+        if (keepControls) {
+            playerView.showController()
+            showInfo(ch, autoHide = false, withEpg = false)
+            handler.postDelayed(epgAfterZap, EPG_AFTER_ZAP_MS)
+        } else {
+            playerView.hideController()
+            showInfo(ch)
+        }
+        handler.removeCallbacks(startPending)
+        handler.postDelayed(startPending, ZAP_DEBOUNCE_MS)
     }
 
     private val listener = object : Player.Listener {
@@ -760,6 +787,8 @@ class PlayerActivity : AppCompatActivity() {
 
     companion object {
         private const val MAX_RETRIES = 3
+        private const val ZAP_DEBOUNCE_MS = 300L
+        private const val EPG_AFTER_ZAP_MS = 1500L
         private const val PIP_ACTION = "pt.nuno.sintonia.PIP"
         private const val PIP_EXTRA = "acao"
         private const val PIP_PREV = 1

@@ -1,2 +1,1 @@
-Janela flutuante (telemóvel/tablet): botão no menu do OK, entra sozinha ao sair da app com vídeo a tocar, e tem botões de canal anterior, pausa e canal seguinte.
-Ícone: desenho ajustado para não ficar cortado.
+Telemóvel: zapping mais rápido — os botões ▲▼ ficam no ecrã enquanto mudas de canal, aparece só o nome do canal (o guia volta quando paras) e toques seguidos saltam canais sem carregar cada um.
