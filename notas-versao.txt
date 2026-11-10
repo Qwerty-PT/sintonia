@@ -1,1 +1,1 @@
-Telemóvel: zapping mais rápido — os botões ▲▼ ficam no ecrã enquanto mudas de canal, aparece só o nome do canal (o guia volta quando paras) e toques seguidos saltam canais sem carregar cada um.
+Telemóvel: o guia já não aparece sozinho — abre com o botão "Guia" nos controlos ou deslizando o dedo para a esquerda no vídeo.

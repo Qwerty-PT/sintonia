@@ -94,7 +94,17 @@ class PlayerActivity : AppCompatActivity() {
     private val startPending = Runnable { playCurrent(fromZap = true) }
     /** Telemóvel com os controlos abertos: o guia volta a aparecer quando se pára de mudar de canal. */
     private val epgAfterZap = Runnable {
-        if (playerView.isControllerFullyVisible) current?.let { showInfo(it, autoHide = false, withEpg = true) }
+        if (playerView.isControllerFullyVisible && guideOpen) current?.let { showInfo(it, autoHide = false, withEpg = true) }
+    }
+
+    /** Telemóvel: o guia só aparece quando se pede (botão "Guia" ou deslizar para a esquerda). */
+    private var guideOpen = false
+
+    private fun toggleGuide() {
+        val ch = current ?: return
+        guideOpen = !guideOpen
+        if (guideOpen && !playerView.isControllerFullyVisible) playerView.showController() // o listener mostra o guia
+        else { playerView.showController(); showInfo(ch, autoHide = false, withEpg = guideOpen) }
     }
     private var retry: Runnable? = null
     private var retries = 0
@@ -136,9 +146,10 @@ class PlayerActivity : AppCompatActivity() {
         findViewById<ImageButton>(R.id.zapDown).setOnClickListener { zap(-1) }
         playerView.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { vis ->
             if (!isTv) zap.visibility = vis
-            // O guia só aparece com os controlos (OK); ao fechá-los desaparece logo
-            if (vis == View.VISIBLE) current?.let { showInfo(it, autoHide = false, withEpg = true) }
-            else { handler.removeCallbacks(hideInfo); info.visibility = View.GONE }
+            // TV: o guia aparece com os controlos (OK). Telemóvel: só o nome — o guia é pelo botão "Guia"
+            // ou deslizando para a esquerda. Ao fechar os controlos desaparece logo.
+            if (vis == View.VISIBLE) current?.let { showInfo(it, autoHide = false, withEpg = isTv || guideOpen) }
+            else { guideOpen = false; handler.removeCallbacks(hideInfo); info.visibility = View.GONE }
         })
 
         // Guia chegou/atualizou, e a cada 30 s (barra de progresso / programa seguinte)
@@ -425,6 +436,11 @@ class PlayerActivity : AppCompatActivity() {
 
         // Botão "Canais" no menu do OK (layout do controlador personalizado)
         playerView.findViewById<View>(R.id.btnChannels)?.setOnClickListener { openChannels() }
+        // Botão "Guia" — telemóvel/tablet (na TV o guia vem com o OK)
+        playerView.findViewById<View>(R.id.btnGuide)?.apply {
+            visibility = if (isTv) View.GONE else View.VISIBLE
+            setOnClickListener { toggleGuide() }
+        }
         // Botão "Janela flutuante" (PiP) — telemóvel/tablet com suporte
         playerView.findViewById<View>(R.id.btnPip)?.apply {
             visibility = if (pipSupported()) View.VISIBLE else View.GONE
@@ -680,6 +696,10 @@ class PlayerActivity : AppCompatActivity() {
                 if (overlayOpen) return false
                 if (dx > minDist && abs(dx) > abs(dy) * 1.5f && start.x < resources.displayMetrics.widthPixels * 0.2f) {
                     openChannels() // deslizar a partir da margem esquerda
+                    return true
+                }
+                if (!isTv && dx < -minDist && abs(dx) > abs(dy) * 1.5f) {
+                    toggleGuide() // deslizar para a esquerda: abre/fecha o guia
                     return true
                 }
                 if (abs(dy) > abs(dx) * 1.5f && abs(dy) > minDist && abs(vy) > 600) {

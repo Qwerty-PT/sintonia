@@ -66,6 +66,13 @@
           android:contentDescription="@string/channels"
           android:src="@drawable/ic_list"/>
 
+      <!-- Sintonia: guia (programa atual e seguinte), só no telemóvel/tablet -->
+      <ImageButton android:id="@+id/btnGuide"
+          style="@style/ExoStyledControls.Button.Bottom"
+          android:contentDescription="@string/guide"
+          android:visibility="gone"
+          android:src="@drawable/ic_guide"/>
+
       <!-- Sintonia: janela flutuante (Picture-in-Picture), só no telemóvel/tablet -->
       <ImageButton android:id="@+id/btnPip"
           style="@style/ExoStyledControls.Button.Bottom"
