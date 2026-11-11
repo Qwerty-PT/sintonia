@@ -1,1 +1,1 @@
-Android antigo (ex.: tablets com Android 6, Fire TV Stick com Fire OS 5): corrigido o erro "Trust anchor for certification path not found" que impedia de carregar a lista, o guia, as atualizações e alguns canais. A app passa a incluir as autoridades de certificação atuais e usa-as só quando as do sistema estão desatualizadas.
+Telemóvel: ao mudar de canal já não aparecem os controlos nem o ecrã escurece — ficam só as setas ▲▼ e o nome do canal, que desaparecem sozinhos uns segundos depois.

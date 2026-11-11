@@ -97,6 +97,13 @@ class PlayerActivity : AppCompatActivity() {
         if (playerView.isControllerFullyVisible && guideOpen) current?.let { showInfo(it, autoHide = false, withEpg = true) }
     }
 
+    /** Telemóvel, depois de mudar de canal: só as setas ▲▼ (sem os controlos), até [hideArrows]. */
+    private var arrowsOnly = false
+    private val hideArrows = Runnable {
+        arrowsOnly = false
+        if (!playerView.isControllerFullyVisible) zap.visibility = View.GONE
+    }
+
     /** Telemóvel: o guia só aparece quando se pede (botão "Guia" ou deslizar para a esquerda). */
     private var guideOpen = false
 
@@ -145,7 +152,8 @@ class PlayerActivity : AppCompatActivity() {
         findViewById<ImageButton>(R.id.zapUp).setOnClickListener { zap(+1) }
         findViewById<ImageButton>(R.id.zapDown).setOnClickListener { zap(-1) }
         playerView.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { vis ->
-            if (!isTv) zap.visibility = vis
+            if (!isTv) zap.visibility = if (vis == View.VISIBLE || arrowsOnly) View.VISIBLE else View.GONE
+            if (vis == View.VISIBLE) { arrowsOnly = false; handler.removeCallbacks(hideArrows) }
             // TV: o guia aparece com os controlos (OK). Telemóvel: só o nome — o guia é pelo botão "Guia"
             // ou deslizando para a esquerda. Ao fechar os controlos desaparece logo.
             if (vis == View.VISIBLE) current?.let { showInfo(it, autoHide = false, withEpg = isTv || guideOpen) }
@@ -224,6 +232,7 @@ class PlayerActivity : AppCompatActivity() {
         super.onStop()
         handler.removeCallbacks(startPending)
         handler.removeCallbacks(epgAfterZap)
+        handler.removeCallbacks(hideArrows)
         cancelRetry()
         playerView.player = null
         player?.release()
@@ -298,18 +307,17 @@ class PlayerActivity : AppCompatActivity() {
         }
         Session.index = i
         val ch = Session.list[i]
-        // Telemóvel com os controlos abertos: ficam abertos (▲▼ à mão) e o tempo para fecharem recomeça;
-        // durante o zapping só o nome do canal — o guia volta quando se parar
-        val keepControls = !isTv && playerView.isControllerFullyVisible && !isInPip()
+        // Ao mudar de canal: sem controlos (nada de ecrã escurecido nem botões no meio), só o nome do canal.
+        // No telemóvel as setas ▲▼ ficam sozinhas no ecrã e desaparecem uns segundos depois do último toque.
         handler.removeCallbacks(epgAfterZap)
-        if (keepControls) {
-            playerView.showController()
-            showInfo(ch, autoHide = false, withEpg = false)
-            handler.postDelayed(epgAfterZap, EPG_AFTER_ZAP_MS)
-        } else {
-            playerView.hideController()
-            showInfo(ch)
+        if (!isTv && !isInPip()) {
+            arrowsOnly = true
+            handler.removeCallbacks(hideArrows)
+            handler.postDelayed(hideArrows, ARROWS_MS)
         }
+        playerView.hideController()
+        if (!isTv && !isInPip()) zap.visibility = View.VISIBLE
+        showInfo(ch)
         handler.removeCallbacks(startPending)
         handler.postDelayed(startPending, ZAP_DEBOUNCE_MS)
     }
@@ -809,6 +817,7 @@ class PlayerActivity : AppCompatActivity() {
         private const val MAX_RETRIES = 3
         private const val ZAP_DEBOUNCE_MS = 300L
         private const val EPG_AFTER_ZAP_MS = 1500L
+        private const val ARROWS_MS = 4000L
         private const val PIP_ACTION = "pt.nuno.sintonia.PIP"
         private const val PIP_EXTRA = "acao"
         private const val PIP_PREV = 1
