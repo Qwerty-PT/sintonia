@@ -76,6 +76,18 @@
   </div>
   <div id="spinner" class="spinner big" hidden></div>
 
+  <!-- Botões redondos como no telemóvel: voltar ao menu (◀) e mudar de canal (▲▼); aparecem com o rato -->
+  <button id="navBack" class="round-btn" title="Voltar ao menu (Esc)" aria-label="Voltar ao menu" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+  </button>
+  <div id="navZap" hidden>
+    <button id="navUp" class="round-btn" title="Canal seguinte (↑)" aria-label="Canal seguinte">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
+    </button>
+    <button id="navDown" class="round-btn" title="Canal anterior (↓)" aria-label="Canal anterior">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+    </button>
+  </div>
   <div id="controls" hidden>
     <button id="cPlay" class="ctl" title="Pausa / continuar (Espaço)"></button>
     <button id="cBack" class="ctl vod" title="Recuar 10 s">−10 s</button>

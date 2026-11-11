@@ -134,6 +134,18 @@
         android:textSize="17sp"
         android:visibility="gone" />
 
+    <!-- Telemóvel: voltar ao menu principal (aparece com as setas ▲▼) -->
+    <ImageButton
+        android:id="@+id/backMenu"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="start|center_vertical"
+        android:layout_marginStart="20dp"
+        android:background="@drawable/bg_round_button"
+        android:contentDescription="@string/back_to_menu"
+        android:src="@drawable/ic_back_menu"
+        android:visibility="gone" />
+
     <LinearLayout
         android:id="@+id/zap"
         android:layout_width="wrap_content"

@@ -1,1 +1,2 @@
-Telemóvel: mudar de canal já não abre os controlos nem escurece o ecrã (nem a deslizar o dedo). Um toque no vídeo mostra só as setas ▲▼ durante 5 segundos; um segundo toque abre os controlos completos.
+Botão ◀ "Voltar ao menu" sobre o vídeo, à esquerda (no telemóvel aparece com as setas ▲▼; no computador com o rato, junto com as setas ▲▼ novas). Um toque volta logo ao menu principal.
+Computador: mexer o rato já não abre o guia (só com Enter).

@@ -97,11 +97,17 @@ class PlayerActivity : AppCompatActivity() {
         if (playerView.isControllerFullyVisible && guideOpen) current?.let { showInfo(it, autoHide = false, withEpg = true) }
     }
 
+    private lateinit var backMenu: View
+    /** Setas ▲▼ e botão ◀ (voltar ao menu) aparecem e desaparecem juntos. */
+    private var arrowsVisibility: Int
+        get() = zap.visibility
+        set(v) { zap.visibility = v; backMenu.visibility = v }
+
     /** Telemóvel, depois de mudar de canal: só as setas ▲▼ (sem os controlos), até [hideArrows]. */
     private var arrowsOnly = false
     private val hideArrows = Runnable {
         arrowsOnly = false
-        if (!playerView.isControllerFullyVisible) zap.visibility = View.GONE
+        if (!playerView.isControllerFullyVisible) arrowsVisibility = View.GONE
     }
 
     /** Telemóvel: só as setas ▲▼ e o nome do canal, sem controlos nem ecrã escurecido, durante [ARROWS_MS]. */
@@ -109,7 +115,7 @@ class PlayerActivity : AppCompatActivity() {
         if (isTv || isInPip()) return
         arrowsOnly = true
         playerView.hideController()
-        zap.visibility = View.VISIBLE
+        arrowsVisibility = View.VISIBLE
         current?.let { showInfo(it) }
         handler.removeCallbacks(hideArrows)
         handler.postDelayed(hideArrows, ARROWS_MS)
@@ -167,10 +173,12 @@ class PlayerActivity : AppCompatActivity() {
         epgNext = findViewById(R.id.epgNext)
         setupOverlay()
 
+        backMenu = findViewById(R.id.backMenu)
+        backMenu.setOnClickListener { finish() } // volta ao menu principal (no grupo/canal onde estava)
         findViewById<ImageButton>(R.id.zapUp).setOnClickListener { zap(+1) }
         findViewById<ImageButton>(R.id.zapDown).setOnClickListener { zap(-1) }
         playerView.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { vis ->
-            if (!isTv) zap.visibility = if (vis == View.VISIBLE || arrowsOnly) View.VISIBLE else View.GONE
+            if (!isTv) arrowsVisibility = if (vis == View.VISIBLE || arrowsOnly) View.VISIBLE else View.GONE
             if (vis == View.VISIBLE) { arrowsOnly = false; handler.removeCallbacks(hideArrows) }
             // TV: o guia aparece com os controlos (OK). Telemóvel: só o nome — o guia é pelo botão "Guia"
             // ou deslizando para a esquerda. Ao fechar os controlos desaparece logo.
@@ -477,7 +485,7 @@ class PlayerActivity : AppCompatActivity() {
         playerView.useController = false
         handler.removeCallbacks(hideInfo)
         info.visibility = View.GONE
-        zap.visibility = View.GONE
+        arrowsVisibility = View.GONE
         radioLogo.visibility = View.GONE
         root.setBackgroundColor(ContextCompat.getColor(this, R.color.bg))
 
@@ -714,7 +722,7 @@ class PlayerActivity : AppCompatActivity() {
              */
             override fun onSingleTapUp(e: MotionEvent): Boolean {
                 if (isTv || overlayOpen || isInPip() || playerView.isControllerFullyVisible || arrowsOnly) return false
-                if (isOver(zap, e) || isOver(message, e)) return false
+                if (isOver(zap, e) || isOver(backMenu, e) || isOver(message, e)) return false
                 showArrowsOnly()
                 return true
             }
@@ -831,7 +839,7 @@ class PlayerActivity : AppCompatActivity() {
             if (overlayOpen) closeChannels() // entrada automática (Android 12+) com a lista aberta
             playerView.hideController()
             info.visibility = View.GONE
-            zap.visibility = View.GONE
+            arrowsVisibility = View.GONE
             message.visibility = View.GONE
         }
         playerView.useController = !isInPictureInPictureMode

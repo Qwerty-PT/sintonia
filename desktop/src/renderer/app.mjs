@@ -734,8 +734,11 @@ function showControls(fromKeyboard) {
   const wasOpen = P.controlsOpen;
   P.controlsOpen = true;
   $("#controls").hidden = false;
+  $("#navBack").hidden = false;
+  $("#navZap").hidden = false;
   $("#player").classList.remove("hide-cursor");
-  if (!wasOpen) showInfo(current(), { epg: true, autoHide: false });
+  // guia só com o teclado (Enter); com o rato só o nome — como no telemóvel
+  if (!wasOpen) showInfo(current(), { epg: !!fromKeyboard, autoHide: false });
   if (fromKeyboard && !$("#controls").contains(document.activeElement)) $("#cPlay").focus();
   armControlsTimer();
 }
@@ -743,6 +746,8 @@ function hideControls() {
   if (!P.controlsOpen) return;
   P.controlsOpen = false;
   $("#controls").hidden = true;
+  $("#navBack").hidden = true;
+  $("#navZap").hidden = true;
   clearTimeout(P.ctlTimer);
   $("#info").hidden = true;
   if ($("#controls").contains(document.activeElement)) document.activeElement.blur();
@@ -773,6 +778,19 @@ $("#cSeek").tabIndex = -1;
 $("#cSeek").addEventListener("input", () => { if (Number.isFinite(video.duration)) video.currentTime = (+$("#cSeek").value / 1000) * video.duration; armControlsTimer(); });
 $("#cLive").addEventListener("click", () => { player.seekToLive(); video.play().catch(() => {}); armControlsTimer(); });
 $("#cChannels").addEventListener("click", () => openOverlay());
+// ◀ volta direto ao menu principal; ▲▼ mudam de canal (o rato continua a mostrar os botões)
+$("#navBack").addEventListener("click", (e) => { e.stopPropagation(); exitPlayer(); });
+$("#navUp").addEventListener("click", (e) => { e.stopPropagation(); zap(+1); showNavOnly(); });
+$("#navDown").addEventListener("click", (e) => { e.stopPropagation(); zap(-1); showNavOnly(); });
+/** Depois de mudar de canal com os botões: só ◀ ▲▼ e o nome (sem a barra de controlos), 5 s. */
+function showNavOnly() {
+  if (P.overlayOpen || miniOn) return;
+  $("#navBack").hidden = false;
+  $("#navZap").hidden = false;
+  clearTimeout(P.navTimer);
+  P.navTimer = setTimeout(() => { if (!P.controlsOpen) { $("#navBack").hidden = true; $("#navZap").hidden = true; } }, 5000);
+}
+for (const id of ["#navBack", "#navUp", "#navDown"]) $(id).addEventListener("dblclick", (e) => e.stopPropagation());
 $("#cMini").addEventListener("click", () => setMini(true));
 
 // ---------- Janela flutuante (PiP) ----------
