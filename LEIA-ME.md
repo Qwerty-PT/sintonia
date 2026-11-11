@@ -151,7 +151,7 @@ Regras:
 
 ## Desktop (Mac / Windows / Linux) — pasta `desktop/`
 
-Electron, mesmo comportamento que o APK 1.17 (versão `1.17.0`): verificação de canais (feita pelo processo
+Electron, mesmo comportamento que o APK (versão `1.23.0`; os números passam a coincidir com o APK): verificação de canais (feita pelo processo
 principal, com os cabeçalhos de cada canal), guia preparado da M3UPT, contador só dos grupos visíveis, abre no
 menu principal, botões Atualizar/Definições/Sair (Ctrl+Q), aviso de versão nova (releases `desktop-v*`,
 abre a página para transferir), tempo de mudar de canal nas Definições. O processo principal põe nos pedidos de vídeo

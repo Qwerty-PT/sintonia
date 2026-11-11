@@ -12,6 +12,7 @@ const EPG_MAX_AGE = 6 * HOUR;
 const OK_TTL = 12 * HOUR, FAIL_TTL = HOUR;
 const CHECK_PARALLEL = 4;
 const UPDATE_EVERY = 15 * 60_000;
+const ZAP_DEBOUNCE = 300; // ms — como no APK 1.19
 const PREVIEW_DELAY = 700;
 const MAX_RETRIES = 3;
 
@@ -621,6 +622,7 @@ function play(list, index) {
 }
 
 function playCurrent() {
+  clearTimeout(P.zapTimer);
   const ch = current();
   if (!ch) return;
   P.retries = 0;
@@ -648,10 +650,17 @@ function zap(delta) {
     if (!isDead(P.list[i])) break;
   }
   P.index = i;
-  playCurrent();
+  // Mostra já o nome; o canal só arranca quando se pára de carregar (▲▼ seguidos saltam sem abrir cada um)
+  const ch = P.list[i];
+  hideControls();
+  showInfo(ch);
+  updateMediaSession();
+  clearTimeout(P.zapTimer);
+  P.zapTimer = setTimeout(playCurrent, ZAP_DEBOUNCE);
 }
 
 async function exitPlayer() {
+  clearTimeout(P.zapTimer);
   if (miniOn || nativePip) await setMini(false);
   if (P.overlayOpen) closeOverlay(false);
   hideControls();
