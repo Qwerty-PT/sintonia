@@ -1,1 +1,1 @@
-Telemóvel: ao mudar de canal já não aparecem os controlos nem o ecrã escurece — ficam só as setas ▲▼ e o nome do canal, que desaparecem sozinhos uns segundos depois.
+Telemóvel: mudar de canal já não abre os controlos nem escurece o ecrã (nem a deslizar o dedo). Um toque no vídeo mostra só as setas ▲▼ durante 5 segundos; um segundo toque abre os controlos completos.

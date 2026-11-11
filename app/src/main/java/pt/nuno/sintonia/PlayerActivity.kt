@@ -104,6 +104,24 @@ class PlayerActivity : AppCompatActivity() {
         if (!playerView.isControllerFullyVisible) zap.visibility = View.GONE
     }
 
+    /** Telemóvel: só as setas ▲▼ e o nome do canal, sem controlos nem ecrã escurecido, durante [ARROWS_MS]. */
+    private fun showArrowsOnly() {
+        if (isTv || isInPip()) return
+        arrowsOnly = true
+        playerView.hideController()
+        zap.visibility = View.VISIBLE
+        current?.let { showInfo(it) }
+        handler.removeCallbacks(hideArrows)
+        handler.postDelayed(hideArrows, ARROWS_MS)
+    }
+
+    private fun isOver(v: View, e: MotionEvent): Boolean {
+        if (v.visibility != View.VISIBLE) return false
+        val r = android.graphics.Rect()
+        v.getGlobalVisibleRect(r)
+        return r.contains(e.rawX.toInt(), e.rawY.toInt())
+    }
+
     /** Telemóvel: o guia só aparece quando se pede (botão "Guia" ou deslizar para a esquerda). */
     private var guideOpen = false
 
@@ -310,14 +328,8 @@ class PlayerActivity : AppCompatActivity() {
         // Ao mudar de canal: sem controlos (nada de ecrã escurecido nem botões no meio), só o nome do canal.
         // No telemóvel as setas ▲▼ ficam sozinhas no ecrã e desaparecem uns segundos depois do último toque.
         handler.removeCallbacks(epgAfterZap)
-        if (!isTv && !isInPip()) {
-            arrowsOnly = true
-            handler.removeCallbacks(hideArrows)
-            handler.postDelayed(hideArrows, ARROWS_MS)
-        }
-        playerView.hideController()
-        if (!isTv && !isInPip()) zap.visibility = View.VISIBLE
-        showInfo(ch)
+        if (!isTv && !isInPip()) showArrowsOnly()
+        else { playerView.hideController(); showInfo(ch) }
         handler.removeCallbacks(startPending)
         handler.postDelayed(startPending, ZAP_DEBOUNCE_MS)
     }
@@ -696,6 +708,17 @@ class PlayerActivity : AppCompatActivity() {
 
     private val gestures by lazy {
         GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            /**
+             * Telemóvel, 1.º toque no vídeo: só as setas (sem escurecer). Com as setas à vista, o toque segue
+             * para o leitor e abre os controlos completos; com os controlos abertos, fecha-os (como antes).
+             */
+            override fun onSingleTapUp(e: MotionEvent): Boolean {
+                if (isTv || overlayOpen || isInPip() || playerView.isControllerFullyVisible || arrowsOnly) return false
+                if (isOver(zap, e) || isOver(message, e)) return false
+                showArrowsOnly()
+                return true
+            }
+
             override fun onFling(e1: MotionEvent?, e2: MotionEvent, vx: Float, vy: Float): Boolean {
                 val start = e1 ?: return false
                 val dy = e2.y - start.y
@@ -720,7 +743,15 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
-        if (!isInPip()) gestures.onTouchEvent(ev)
+        val handled = !isInPip() && gestures.onTouchEvent(ev)
+        // Gesto já usado (mudar de canal, guia, lista): o leitor não o pode ver como um toque,
+        // senão abre os controlos e escurece o ecrã. Recebe um "cancelar" em vez do "largar".
+        if (handled && ev.actionMasked == MotionEvent.ACTION_UP) {
+            val cancel = MotionEvent.obtain(ev).apply { action = MotionEvent.ACTION_CANCEL }
+            super.dispatchTouchEvent(cancel)
+            cancel.recycle()
+            return true
+        }
         return super.dispatchTouchEvent(ev)
     }
 
@@ -817,7 +848,7 @@ class PlayerActivity : AppCompatActivity() {
         private const val MAX_RETRIES = 3
         private const val ZAP_DEBOUNCE_MS = 300L
         private const val EPG_AFTER_ZAP_MS = 1500L
-        private const val ARROWS_MS = 4000L
+        private const val ARROWS_MS = 5000L
         private const val PIP_ACTION = "pt.nuno.sintonia.PIP"
         private const val PIP_EXTRA = "acao"
         private const val PIP_PREV = 1
