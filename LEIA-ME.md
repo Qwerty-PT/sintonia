@@ -78,6 +78,7 @@ Vem pré-configurado com a lista **M3UPT** (LITUATUI, licença MIT):
   `release.yml` publica a versão quando o `versionName` muda (ver "Atualização automática").
 - Testes: `./gradlew testReleaseUnitTest` (inclui os exemplos de `spec/`) e `node spec/check-configurador.mjs`
   (com a lista real: `M3U_FILE=/caminho/M3UPT.m3u ./gradlew testReleaseUnitTest -i`).
+- CA raiz para Android < 10 (`res/raw/cacert.pem`, pacote da Mozilla via curl.se): atualizar com `sh ferramentas/atualizar-ca.sh`.
 
 ## Assinatura (o repositório é público — a chave não está nele)
 - A chave `sintonia.jks` e a palavra-passe ficam **fora do Git**. Todas as versões têm de ser assinadas com

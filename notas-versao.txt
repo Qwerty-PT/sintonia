@@ -1,1 +1,1 @@
-Telemóvel: o guia já não aparece sozinho — abre com o botão "Guia" nos controlos ou deslizando o dedo para a esquerda no vídeo.
+Android antigo (ex.: tablets com Android 6, Fire TV Stick com Fire OS 5): corrigido o erro "Trust anchor for certification path not found" que impedia de carregar a lista, o guia, as atualizações e alguns canais. A app passa a incluir as autoridades de certificação atuais e usa-as só quando as do sistema estão desatualizadas.
